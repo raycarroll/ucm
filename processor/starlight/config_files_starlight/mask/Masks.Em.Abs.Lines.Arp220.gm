@@ -1,0 +1,11 @@
+10
+0.0000  4616.0  0.0  blue part      No data
+4835.0	4880.0	0.0  Hbeta          4861 emission line
+4940.0	4975.0	0.0  [OIII]         4959 
+4980.0	5028.0	0.0  [OIII]         5007 emission lines
+5696.0  5865.0  0.0  Laser          Laser contamination
+5866.0	5916.0	0.0  HeI & NaD      5876 emission line & ~ 5890 ISM absorption
+6280.0	6320.0	0.0  [OI]           6300 emission line
+6520.0	6610.0	0.0  Halpha & [NII] 6563, 6548 & 6583 emission lines
+6675.0	6755.0	0.0  [SII]          6717 & 6731 emission lines
+7440.0  7550.0  0.0  residual       residual

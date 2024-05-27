@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ucm-producer-deployment
+  labels:
+    app: ucm-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ucm-producer
+  template:
+    metadata:
+      labels:
+        app: ucm-producer
+    spec:
+      volumes:
+      - name: ucm-pv-storage
+        persistentVolumeClaim:
+          claimName: ucm-pv-claim
+      containers:
+      - image: rayc/ucm-producer:latest
+        name: ucm-producer
+        ports:
+        - containerPort: 5672
+        volumeMounts:
+        - mountPath: /home/starlight/shared_directory/config_files_starlight/
+          name: ucm-pv-storage

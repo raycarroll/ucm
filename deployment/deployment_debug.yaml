@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ucm-debug-deployment
+  labels:
+    app: ucm-debug
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ucm-debug
+  template:
+    metadata:
+      labels:
+        app: ucm-debug
+    spec:
+      volumes:
+      - name: ucm-pv-storage
+        persistentVolumeClaim:
+          claimName: ucm-pv-claim
+      containers:
+      - image: ubuntu:latest
+        command: ["/bin/bash", "-c", "--"]
+        args: ["while true; do sleep 30; done;"]
+        name: ucm-debug
+        volumeMounts:
+        - mountPath: /home/starlight/shared_directory/config_files_starlight/
+          name: ucm-pv-storage
