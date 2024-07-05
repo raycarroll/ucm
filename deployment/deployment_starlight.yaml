@@ -19,15 +19,24 @@ spec:
         persistentVolumeClaim:
           claimName: ucm-pv-claim
       containers:
-      - image: rayc/starlight
+      - image: valeriiashapoval/starlight
         name: starlight
         workingDir: /docker/starlight/STARLIGHTv04
         command: ["./bash_script2.sh"]
         volumeMounts:
         - mountPath: /starlight/
           name: ucm-pv-storage
-      - image: rayc/ucm-processor
+      - image: valeriiashapoval/receiver
         name: eventreceiver
         volumeMounts:
         - mountPath: /starlight/
           name: ucm-pv-storage
+      env:
+        - name: RABBITMQ_USER
+          value: "guest"
+        - name: RABBITMQ_PASSWORD
+          value: "guest"
+        - name: RABBITMQ_HOST
+          value: "rabbitmq.vshapova-dev.svc.cluster.local"
+        - name: RABBITMQ_PORT
+          value: "5672"
