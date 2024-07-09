@@ -37,6 +37,6 @@ spec:
         - name: RABBITMQ_PASSWORD
           value: "guest"
         - name: RABBITMQ_HOST
-          value: "rabbitmq.vshapova-dev.svc.cluster.local"
+          value: "rabbitmq"
         - name: RABBITMQ_PORT
           value: "5672"
