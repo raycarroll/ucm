@@ -34,6 +34,6 @@ spec:
           value: "5672"
       imagePullSecrets:
       - name: docker-secret
-        volumeMounts:
+      volumeMounts:
         - mountPath: /home/starlight/shared_directory/config_files_starlight/
           name: ucm-pv-storage
