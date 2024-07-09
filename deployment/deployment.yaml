@@ -32,8 +32,6 @@ spec:
           value: "rabbitmq.vshapova-dev.svc.cluster.local"
         - name: RABBITMQ_PORT
           value: "5672"
-      imagePullSecrets:
-      - name: docker-secret
       volumeMounts:
         - mountPath: /home/starlight/shared_directory/config_files_starlight/
           name: ucm-pv-storage
