@@ -21,6 +21,15 @@ spec:
       containers:
       - image: valeriiashapoval/ucm
         name: ucm-producer
+        env:
+        - name: RABBITMQ_USER
+          value: "guest"
+        - name: RABBITMQ_PASSWORD
+          value: "guest"
+        - name: RABBITMQ_HOST
+          value: "rabbitmq"
+        - name: RABBITMQ_PORT
+          value: "5672"
         ports:
         - containerPort: 5672
         volumeMounts:

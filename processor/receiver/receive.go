@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -21,9 +22,9 @@ func main() {
 	//password := "UK5IoTeB7hD6tf3BGfV4ewt9hs0Dw3WN"
 	username := os.Getenv("RABBITMQ_USER")
 	password := os.Getenv("RABBITMQ_PASSWORD")
-	//host := os.Getenv("RABBITMQ_HOST")
-	//port := os.Getenv("RABBITMQ_PORT")
-	url := "amqp://" + "guest" + ":" + "guest" + "@" + "172.30.198.237" + ":" + "5672" + "/"
+	host := os.Getenv("RABBITMQ_HOST")
+	port := os.Getenv("RABBITMQ_PORT")
+	url := fmt.Sprintf("amqp://%s:%s@%s:%s/", username, password, host, port)
 
 	println("user ", username)
 	println("pass ", password)
