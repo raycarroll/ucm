@@ -31,7 +31,7 @@ spec:
         volumeMounts:
         - mountPath: /starlight/
           name: ucm-pv-storage
-      env:
+        env:
         - name: RABBITMQ_USER
           value: "guest"
         - name: RABBITMQ_PASSWORD

@@ -1,6 +1,6 @@
 2702                                             [Number of fits to run]
-/docker/starlight/STARLIGHTv04/                    [base_dir]
-/starlight/input/                        [obs_dir]
+/docker/starlight/STARLIGHTv04/                  [base_dir]
+/starlight/input/                                [obs_dir]
 /docker/starlight/shared_directory/config_files_starlight/mask/                            [mask_dir]
 /starlight/output/                             [out_dir]
 -2007200                                         [your phone number]
@@ -14,8 +14,3 @@ FXK                                              [FIT/FXK] Fit or Fix kinematics
 0                                                [IsErrSpecAvailable]  1/0 = Yes/No
 0                                                [IsFlagSpecAvailable] 1/0 = Yes/No
 spectrum_0461.txt  StCv04.C11.arp220.config  Base.BC03.N  Masks.Em.Abs.Lines.Arp220.gm  CAL 37.755 0.555  spectrum_0461_output.txt
-
-spectrum_0461.txt 37.755 0.555
-spectrum_0461.txt 38.5 0.555
-spectrum_0461.txt
-spectrum_0461.txt
