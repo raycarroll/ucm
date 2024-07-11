@@ -6,7 +6,9 @@ import (
 	"log"
 	"os"
 	"strings"
-
+	//"time"
+	"strconv"
+	"math/rand"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -28,6 +30,8 @@ func main() {
 
 	println("user ", username)
 	println("pass ", password)
+	println("host ", host)
+	println("port ", port)
 	println("url ", url)
 
 	conn, err := amqp.Dial(url)
@@ -73,12 +77,12 @@ func main() {
 
 		log.Printf(" -------------------------- Iterating messages  -------------------------------")
 		log.Println("Read Flag = ", checkReadFlag())
-
+		newInputFileName := ""
 		for {
 
-			if checkReadFlag() == false {
+			//if checkReadFlag() == false {
 
-				log.Println("Read Flag = ", checkReadFlag())
+			//	log.Println("Read Flag = ", checkReadFlag())
 				d := <-msgs
 
 				//for d := range msgs {
@@ -90,13 +94,27 @@ func main() {
 
 				if filename, ok := d.Headers["filename"].(string); ok {
 					writeMessageToFile(d.Body, filename)
-					updateInFile(filename)
-					setReadFlag()
+					newInputFileName = updateInFile(filename)
+					//setReadFlag()
+
+					updateToProcessList(newInputFileName)
+
+					outputPath := "/starlight/data/output"
+					//check if output dir exists, if not create as not sure if Starlight will crete it
+					if exists, direrr := exists(outputPath); exists == false && direrr == nil {
+						println("Output directory does not exist, making it", outputPath)
+						err := os.Mkdir(outputPath, 0700)
+						if err != nil {
+							println("ERROR: ", err)
+						}
+					}
+
+
 					d.Ack(false)
 				} else {
 					log.Println("Error ", ok)
 				}
-			}
+			//}
 		}
 		log.Printf("Processed Messages")
 	}()
@@ -105,9 +123,19 @@ func main() {
 	<-forever
 }
 
+func touchFile(name string) error {
+    file, err := os.OpenFile(name, os.O_RDONLY|os.O_CREATE, 0644)
+    if err != nil {
+        return err
+    }
+    return file.Close()
+}
+
 func writeMessageToFile(body []byte, filename string) {
+	//TODO - review this, at the moment all data on a shared drive so this is actually unneccessary
+
 	println("Writing message to data file")
-	filepath := "/starlight/input/"
+	filepath := "/starlight/runtime/input/"
 
 	if exists, direrr := exists(filepath); exists == false && direrr == nil {
 		println("Input directory does not exist, making it", filepath)
@@ -132,6 +160,35 @@ func checkReadFlag() bool {
 	}
 	return false
 }
+
+func updateToProcessList(inFileName string) {
+	log.Printf("Adding new .in file to ProcessList %s", inFileName)
+	PROCESS_LIST := "/starlight/runtime/processlist.txt"
+
+	//fix this it;s shite
+	if exists, direrr := exists(PROCESS_LIST ); exists == false && direrr == nil {
+		println("Error: ", PROCESS_LIST, " does not exist, creating it")
+		//creating file
+		touchFile(PROCESS_LIST)
+		println(PROCESS_LIST, " has been created")
+	}
+
+	f, err := os.OpenFile(PROCESS_LIST, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	defer f.Close()
+	
+	if err != nil {
+		println("Error: could not open", PROCESS_LIST)
+		panic(err)
+	}
+
+	//add new .in file to bottom of list 
+
+	if _, err = f.WriteString(inFileName+"\n"); err != nil {
+		panic(err)
+	}
+	println(inFileName, " has been added")
+}
+
 func setReadFlag() {
 	// creates the start_starlight file
 	log.Printf("Setting the read flag")
@@ -145,19 +202,22 @@ func setReadFlag() {
 	log.Printf("Read flag set")
 }
 
-func updateInFile(inputFileName string) {
+func updateInFile(inputFileName string) string {
 	println("updating .in file")
-	inFilePath := "/docker/starlight/config_files_starlight/"
-	inFileName := "grid_example.in"
-
+	templateInFilePath := "/docker/starlight/config_files_starlight/"
+	templateInFileName := "grid_example.in"
+	inFileOutputPath := "/starlight/runtime/infiles/"
+	newInFileName := "grid_example"+strconv.Itoa(rand.Int())+".in"
+	
 	//fix this it;s shite
-	if exists, direrr := exists(inFilePath + inFileName); exists == false && direrr == nil {
-		println("Error: ", inFileName, " does not exist")
+	if exists, direrr := exists(templateInFilePath + templateInFileName); exists == false && direrr == nil {
+		println("Error: ", templateInFileName, " does not exist")
 	}
 
-	f, err := os.Open(inFilePath + inFileName)
+	f, err := os.Open(templateInFilePath + templateInFileName)
 	defer f.Close()
 	if err != nil {
+		println("Error opening file")
 		panic(err)
 	}
 
@@ -192,13 +252,11 @@ func updateInFile(inputFileName string) {
 	}
 
 	print("New File = ", newFile)
-
-	filepath := "/starlight/"
-	filename := "grid_example.in"
+	//filename := "grid_example.in"
 
 	//write new in file to /starlight/
-	log.Printf("Writing updated .in file to %s", filepath+filename)
-	werr := os.WriteFile(filepath+filename, []byte(newFile), 0644)
+	log.Printf("Writing updated .in file to %s", inFileOutputPath+newInFileName)
+	werr := os.WriteFile(inFileOutputPath+newInFileName, []byte(newFile), 0644)
 
 	if err != nil {
 		println("Error ", werr.Error())
@@ -207,6 +265,8 @@ func updateInFile(inputFileName string) {
 	if err := scanner.Err(); err != nil {
 		println(os.Stderr, "reading standard input:", err)
 	}
+
+	return newInFileName
 }
 
 func exists(path string) (bool, error) {

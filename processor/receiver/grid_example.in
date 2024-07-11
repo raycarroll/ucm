@@ -1,21 +1,16 @@
 2702                                             [Number of fits to run]
 /docker/starlight/STARLIGHTv04/                    [base_dir]
-/starlight/input/                        [obs_dir]
+/starlight/runtime/input/                        [obs_dir]
 /docker/starlight/shared_directory/config_files_starlight/mask/                            [mask_dir]
-/starlight/output/                             [out_dir]
+/starlight/data/output/                             [out_dir]
 -2007200                                         [your phone number]
-4730.0                                           [llow_SN]   lower-lambda of S/N window
-4780.0                                           [lupp_SN]   upper-lambda of S/N window
-2700.0                                           [Olsyn_ini] lower-lambda for fit
-9000.0                                           [Olsyn_fin] upper-lambda for fit
+5600.0                                           [llow_SN]   lower-lambda of S/N window
+5800.0                                           [lupp_SN]   upper-lambda of S/N window
+5300.0                                           [Olsyn_ini] lower-lambda for fit
+6000.0                                           [Olsyn_fin] upper-lambda for fit
 1.0                                              [Odlsyn]    delta-lambda for fit
 1.0                                              [fscale_chi2] fudge-factor for chi2
-FXK                                              [FIT/FXK] Fit or Fix kinematics
+FIT                                              [FIT/FXK] Fit or Fix kinematics
 0                                                [IsErrSpecAvailable]  1/0 = Yes/No
 0                                                [IsFlagSpecAvailable] 1/0 = Yes/No
-spectrum_0461.txt  StCv04.C11.arp220.config  Base.BC03.N  Masks.Em.Abs.Lines.Arp220.gm  CAL 37.755 0.555  spectrum_0461_output.txt
-
-spectrum_0461.txt 37.755 0.555
-spectrum_0461.txt 38.5 0.555
-spectrum_0461.txt
-spectrum_0461.txt
+spectrum_0461.txt  StCv04.C11.arp220.config  Base.BC03.N  Masks.Em.Abs.Lines.Arp220.gm  CAL 4900 210  spectrum_0461_output.txt

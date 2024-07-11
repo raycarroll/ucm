@@ -38,7 +38,10 @@ func readSpectrumFiles(spectrumPath string) []string {
 	}
 
 	for _, e := range entries {
-		fileList = append(fileList, e.Name())
+		//TODO - more type checking on these files
+		if !e.IsDir(){
+			fileList = append(fileList, e.Name())
+		}
 	}
 
 	return fileList
@@ -78,6 +81,8 @@ func send() {
 	port := os.Getenv("RABBITMQ_PORT")
 	url := fmt.Sprintf("amqp://%s:%s@%s:%s/", username, password, host, port)
 
+	inputPath := "/starlight/data/input/"
+
 	println("user ", username)
 	println("pass ", password)
 	println("url ", url)
@@ -103,19 +108,19 @@ func send() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	filePath := "/docker/starlight/shared_directory/config_files_starlight/spectrum/"
+	//filePath := "/docker/starlight/shared_directory/config_files_starlight/spectrum/"
 
 	for {
-		dataFiles := readSpectrumFiles(filePath)
+		dataFiles := readSpectrumFiles(inputPath)
 		log.Printf("Num Files = %v", len(dataFiles))
 
 		for _, f := range dataFiles {
 			//for each datafile, dreate event and move file to /processed directory
 
-			if !isDir(filePath + f) {
+			if !isDir(inputPath + f) {
 				log.Printf("File = %s", f)
 
-				datafile, err := readFile("/docker/starlight/shared_directory/config_files_starlight/spectrum/", f)
+				datafile, err := readFile(inputPath, f)
 
 				body := datafile
 				headers := make(amqp.Table)
@@ -137,13 +142,13 @@ func send() {
 				//move data file to processed
 				log.Printf(" Moving file to /processed dir")
 
-				moveerr := MoveFile(filePath+f, filePath+"processed/"+f)
+				moveerr := MoveFile(inputPath+f, inputPath+"processed/"+f)
 
 				if moveerr != nil {
 					log.Printf("unable to move file: %v", moveerr)
 				}
 
-				log.Printf(" Moved file to " + filePath + "/processed/" + f)
+				log.Printf(" Moved file to " + inputPath + "/processed/" + f)
 			}
 		}
 
