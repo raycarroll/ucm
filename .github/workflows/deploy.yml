@@ -40,12 +40,6 @@ jobs:
             registry: ${{ env.DOCKER_REGISTRY }}
             username: ${{ env.DOCKER_USERNAME }}
             password: ${{ env.DOCKER_PASSWORD }}
-        - name: Check if DOCKER_PASSWORD is defined
-          run: |
-            if [ -z "$DOCKER_PASSWORD" ]; then
-              echo "DOCKER_PASSWORD is not defined."
-              exit 1
-            fi
 
         - name: Build the Docker image
           uses: docker/build-push-action@v4
