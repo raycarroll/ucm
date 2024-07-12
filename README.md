@@ -2,6 +2,17 @@
 
 ![ucm arch](https://github.com/raycarroll/ucm/assets/3717348/2f0870d1-b90d-4a3d-b2d2-6fd8440d0959)
 
+This diagram illustrates a data processing architecture utilising RabbitMQ to enable event-driven communication. This setup helps to parallelise and distribute the processing of large datasets across multiple nodes efficiently.
+
+1. Event Producer Pod: This component reads spectrum data files from the mounted
+Spectral Volume. It creates events (chunks of data) and publishes these events to RabbitMQ.
+
+2. RabbitMQ: Acts as the message broker, managing the distribution of data events to various Processor Pods.
+
+3. Processor Pods: Each of these pods subscribes to the RabbitMQ queue to receive data events. The Event Receiver container within each pod writes a data file in a format suitable for the Starlight application. The file is saved to a shared volume accessible to both containers within the pod.
+
+4. Starlight Application: This application, triggered by a bash script, processes the new data file and saves the results back to a shared volume on the Event Producer Pod.
+
 ## Setup guide
 
 ### Prerequisites:
