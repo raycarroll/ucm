@@ -6,13 +6,13 @@
 
 ### Prerequisites:
 
-- oc https://docs.openshift.com/container-platform/4.8/cli_reference/openshift_cli/getting-started-cli.html
-- OpenShift cluster and it's admin credentials for further actions 
-- RabbitMQ
+- kubernetes (https://kubernetes.io/docs/setup/)
+- kind (https://kind.sigs.k8s.io/)
+- Kubernetes cluster and it's admin credentials for further actions 
 
 ## Locally
 
-For local setup - additional requirement is Docker (https://www.docker.com/)
+For local setup - additional requirement is Docker (https://www.docker.com/) and RabbitMQ instance (https://www.rabbitmq.com/docs/download)
 
 1. Set up RabbitMQ and make sure that the credentials in producer.go and receive.go are used correctly according to local environment.
 
@@ -58,7 +58,10 @@ url  amqp://user:pass@host:5672/
 Writing message to data file
 ```
 
-## Deploy on a cluster
+## Deploy on a cluster (kind)
+
+Useful UI tool - https://k8slens.dev/
+
 
 The required files are located in: 
 ```
@@ -69,15 +72,23 @@ ucm/deployment/.
 1. To check the status of your pods
 
 ```
-oc get pods -n _namespace_
+kubectl get pods -n _namespace_
 ``` 
 2. To delete a deployment
 ```
-oc delete deployment deployment_name -n your_namespace
+kubectl delete deployment deployment_name -n your_namespace
 ```
 3. To verify if RabbitMQ service is healthy and running
 ```
-oc get svc -n your_namespace
+kubectl get svc -n your_namespace
+```
+4. To get the logs of a given pod
+```
+kubectl logs _podname_ -n _namespace_
+```
+5. To execute command in a pod:
+```
+kubectl exec -it _podname_ -- /bin/ bash
 ```
 
 ### Step to apply the deployment configurations:
@@ -85,23 +96,40 @@ oc get svc -n your_namespace
 First, we need to configure the volume, volumeclaim and rabbitmq:
 
 ```
-oc apply -f ./volume.yaml -n _namespace_
+kubectl apply -f ./volume.yaml -n _namespace_
 ```
 
 ```
-oc apply -f ./volumeclaim.yaml -n _namespace_
+kubectl apply -f ./volumeclaim.yaml -n _namespace_
 ```
 ```
-oc apply -f ./deployment_rabbitmq.yaml -n _namespace_
+kubectl apply -f ./deployment_rabbitmq.yaml -n _namespace_
 ```
 ### Then, we can start deployment of: deployment.yaml and deployment_starlight.yaml
 
 ```
-oc apply -f _filename_ -n _namespace_
+kubectl apply -f _filename_ -n _namespace_
 ```
 
 You should be able to see the following output (example):
 
 ```
 deployment.apps/ucm-producer-deployment created 
+```
+
+## Once all pods are up, you can run the following command to copy the data in the input folder:
+
+```
+kubectl cp /some/path/to/inputfile . _podname_:/starlight/data/input/ -n _namespace_ 
+```
+
+## The Output data can be viewed in the /starlight/data/output directory. You can either exec into the pod to view or copy down to local directory:
+
+```
+kubectl exec --stdin --tty _podname_ -n _namespace_ -- /bin/bash
+cd /starlight/data/output
+```
+OR
+```
+kubectl cp _podname_:/starlight/data/output/ /some/local/dir/ -n _namespace_ 
 ```
