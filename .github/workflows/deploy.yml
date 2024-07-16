@@ -17,13 +17,13 @@ jobs:
         image:
           - name: ucm-processor
             tag: latest
-            dockerfile: ./processor/starlight/Dockerfile
+            dockerfile: ./processor/starlight/
           - name: ucm-receiver
             tag: latest
-            dockerfile: ./processor/receiver/Dockerfile
+            dockerfile: ./processor/receiver/
           - name: ucm-producer
             tag: latest
-            dockerfile: ./producer/Dockerfile
+            dockerfile: ./producer/
 
 
     steps:
@@ -40,6 +40,6 @@ jobs:
         - name: Build the Docker image
           uses: docker/build-push-action@v6
           with:
-            file: ${{ matrix.image.dockerfile }}
+            context: "{{defaultContext}}:${{ matrix.image.dockerfile }}"
             push: true
             tags: ${{ vars.DOCKER_REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
