@@ -26,9 +26,10 @@ jobs:
 
     env:
       DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-      DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      env_var: ${{ vars.ENV_CONTEXT_VAR }}
+
 
     steps:
         - name: Checkout
@@ -49,4 +50,4 @@ jobs:
           with:
             file: ${{ matrix.image.dockerfile }}
             push: true
-            tags: ${{ env.DOCKER_REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
+            tags: ${{ vars.REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
