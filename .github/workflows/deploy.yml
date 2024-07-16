@@ -50,4 +50,4 @@ jobs:
           with:
             file: ${{ matrix.image.dockerfile }}
             push: true
-            tags: ${{ vars.REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
+            tags: ${{ vars.DOCKER_REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
