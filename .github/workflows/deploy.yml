@@ -49,4 +49,4 @@ jobs:
           with:
             file: ${{ matrix.image.dockerfile }}
             push: true
-            tags: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
+            tags: ${{ env.DOCKER_REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
