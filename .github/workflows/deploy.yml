@@ -10,6 +10,7 @@ on:
 jobs: 
   build:
     runs-on: ubuntu-latest
+    environment: UCM
 
     strategy:
       matrix:
@@ -49,4 +50,4 @@ jobs:
           with:
             file: ${{ matrix.image.dockerfile }}
             push: true
-            tags: ${{ vars.UCM.DOCKER_REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
+            tags: ${{ vars.DOCKER_REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
