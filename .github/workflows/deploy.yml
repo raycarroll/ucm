@@ -15,15 +15,15 @@ jobs:
     strategy:
       matrix:
         image:
-          - name: starlight
+          - name: ucm-processor
             tag: latest
             dockerfile: ./processor/starlight/Dockerfile
-          - name: receiver
+          - name: ucm-receiver
             tag: latest
             dockerfile: ./processor/receiver/Dockerfile
-          - name: ucm
+          - name: ucm-producer
             tag: latest
-            dockerfile: ./processor/Dockerfile
+            dockerfile: ./producer/Dockerfile
 
 
     steps:
