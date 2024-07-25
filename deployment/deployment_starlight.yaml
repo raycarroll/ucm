@@ -47,3 +47,9 @@ spec:
           value: "rabbitmq"
         - name: RABBITMQ_PORT
           value: "5672"
+        - name: DATA_FILE_PATH
+          value: "/starlight/runtime/input"
+        - name: DATA_FILE_FLAG
+          value: "/starlight/start_starlight"
+        - name: PROCESS_LIST
+          value: "/starlight/runtime/processlist.txt" 
