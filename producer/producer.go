@@ -3,13 +3,108 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+type DataFile struct {
+	Name    string
+	Content string
+}
+
+type Event struct {
+	Files []DataFile
+}
+
+type Producer struct {
+	batchSize  int
+	batch      []DataFile
+	eventQueue chan Event
+	inputDir   string
+	outputDir  string
+}
+
+func NewProducer(batchSize int, inputDir, outputDir string, eventQueue chan Event) *Producer {
+	return &Producer{
+		batchSize:  batchSize,
+		batch:      make([]DataFile, 0, batchSize),
+		eventQueue: eventQueue,
+		inputDir:   inputDir,
+		outputDir:  outputDir,
+	}
+}
+
+func (p *Producer) AddFile(file DataFile) {
+	p.batch = append(p.batch, file)
+	if len(p.batch) >= p.batchSize {
+		p.sendBatch()
+	}
+}
+
+func (p *Producer) sendBatch() {
+	if len(p.batch) > 0 {
+		event := Event{Files: p.batch}
+		p.eventQueue <- event
+		p.moveProcessedFiles()
+		p.batch = make([]DataFile, 0, p.batchSize)
+	}
+}
+
+func (p *Producer) moveProcessedFiles() {
+	for _, file := range p.batch {
+		sourcePath := filepath.Join(p.inputDir, file.Name)
+		destPath := filepath.Join(p.outputDir, file.Name)
+		err := MoveFile(sourcePath, destPath)
+		if err != nil {
+			fmt.Printf("Error moving file %s: %v\n", file.Name, err)
+		}
+	}
+}
+
+func (p *Producer) ReadFiles() {
+	files, err := os.ReadDir(p.inputDir)
+	failOnError(err, "Failed reading input directory")
+	for _, file := range files {
+		if !file.IsDir() {
+			content, err := os.ReadFile(filepath.Join(p.inputDir, file.Name()))
+			if err != nil {
+				log.Printf("Error reading file %s: %v\n", file.Name(), err)
+				continue
+			}
+			p.AddFile(DataFile{Name: file.Name(), Content: string(content)})
+		}
+	}
+}
+
+func mainRun() {
+	eventQueue := make(chan Event, 10)
+
+	inputDir := os.Getenv("INPUT_DIR")
+	outputDir := os.Getenv("OUTPUT_DIR")
+
+	if inputDir == "" || outputDir == "" {
+		log.Fatal("INPUT_DIR  and OUTPUT_DIR environment variables is required")
+	}
+
+	producer := NewProducer(5, inputDir, outputDir, eventQueue)
+
+	go func() {
+		for event := range eventQueue {
+			fmt.Printf("Sent event with %d files\n", len(event.Files))
+			send(event)
+		}
+	}()
+
+	for {
+		producer.ReadFiles()
+		producer.sendBatch()
+		time.Sleep(10 * time.Second)
+	}
+}
 
 func failOnError(err error, msg string) {
 	if err != nil {
@@ -17,75 +112,16 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func MoveFile(source, destination string) (err error) {
+func MoveFile(source, destination string) error {
 	return os.Rename(source, destination)
 }
 
-func readSpectrumFiles(spectrumPath string) []string {
-
-	file, err := os.Open(spectrumPath)
-	var fileList []string
-
-	if err != nil {
-		log.Fatalf("failed opening directory: %s", err)
-	}
-	defer file.Close()
-
-	entries, err := file.ReadDir(0)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, e := range entries {
-		//TODO - more type checking on these files
-		if !e.IsDir(){
-			fileList = append(fileList, e.Name())
-		}
-	}
-
-	return fileList
-}
-
-func archiveDataFile(dataFile string) {
-	//move data file from current directory to /processed directory
-
-}
-
-func readFile(path string, filename string) (string, error) {
-	body, err := ioutil.ReadFile(path + filename)
-	if err != nil {
-		log.Fatalf("unable to read file: %v", err)
-		return "", err
-	}
-	return string(body), nil
-}
-
-func isDir(filepath string) bool {
-	file, err := os.Open(filepath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fi, err := file.Stat()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return fi.IsDir()
-}
-func send() {
-	//username := "default_user_hU_V7zaOVkqdnAb96no"
-	//password := "UK5IoTeB7hD6tf3BGfV4ewt9hs0Dw3WN"
+func send(event Event) {
 	username := os.Getenv("RABBITMQ_USER")
 	password := os.Getenv("RABBITMQ_PASSWORD")
 	host := os.Getenv("RABBITMQ_HOST")
 	port := os.Getenv("RABBITMQ_PORT")
 	url := fmt.Sprintf("amqp://%s:%s@%s:%s/", username, password, host, port)
-
-	inputPath := "/starlight/data/input/"
-
-	println("user ", username)
-	println("pass ", password)
-	println("url ", url)
 
 	conn, err := amqp.Dial(url)
 	failOnError(err, "Failed to connect to RabbitMQ")
@@ -108,52 +144,22 @@ func send() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	//filePath := "/docker/starlight/shared_directory/config_files_starlight/spectrum/"
+	for _, f := range event.Files {
+		body := f.Content
+		headers := make(amqp.Table)
+		headers["filename"] = f.Name
 
-	for {
-		dataFiles := readSpectrumFiles(inputPath)
-		log.Printf("Num Files = %v", len(dataFiles))
-
-		for _, f := range dataFiles {
-			//for each datafile, dreate event and move file to /processed directory
-
-			if !isDir(inputPath + f) {
-				log.Printf("File = %s", f)
-
-				datafile, err := readFile(inputPath, f)
-
-				body := datafile
-				headers := make(amqp.Table)
-				headers["filename"] = f
-
-				err = ch.PublishWithContext(ctx,
-					"",     // exchange
-					q.Name, // routing key
-					false,  // mandatory
-					false,  // immediate
-					amqp.Publishing{
-						ContentType: "text/plain",
-						Body:        []byte(body),
-						Headers:     headers,
-					})
-				failOnError(err, "Failed to publish a message")
-				log.Printf(" [x] Sent %s\n", body[0:10])
-
-				//move data file to processed
-				log.Printf(" Moving file to /processed dir")
-
-				moveerr := MoveFile(inputPath+f, inputPath+"processed/"+f)
-
-				if moveerr != nil {
-					log.Printf("unable to move file: %v", moveerr)
-				}
-
-				log.Printf(" Moved file to " + inputPath + "/processed/" + f)
-			}
-		}
-
-		// wait x seconds to read data directory again
-		time.Sleep(60 * time.Second)
+		err = ch.PublishWithContext(ctx,
+			"",     // exchange
+			q.Name, // routing key
+			false,  // mandatory
+			false,  // immediate
+			amqp.Publishing{
+				ContentType: "text/plain",
+				Body:        []byte(body),
+				Headers:     headers,
+			})
+		failOnError(err, "Failed to publish a message")
+		log.Printf(" [x] Sent %s\n", body[0:10])
 	}
-
 }
