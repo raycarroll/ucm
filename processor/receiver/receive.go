@@ -6,9 +6,11 @@ import (
 	"log"
 	"os"
 	"strings"
+
 	//"time"
-	"strconv"
 	"math/rand"
+	"strconv"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -19,9 +21,7 @@ func failOnError(err error, msg string) {
 }
 
 func main() {
-	log.Printf(" ------------------ reveive() --------------------- ")
-	//username := "default_user_hU_V7zaOVkqdnAb96no"
-	//password := "UK5IoTeB7hD6tf3BGfV4ewt9hs0Dw3WN"
+	log.Printf(" ------------------ receive() --------------------- ")
 	username := os.Getenv("RABBITMQ_USER")
 	password := os.Getenv("RABBITMQ_PASSWORD")
 	host := os.Getenv("RABBITMQ_HOST")
@@ -83,37 +83,36 @@ func main() {
 			//if checkReadFlag() == false {
 
 			//	log.Println("Read Flag = ", checkReadFlag())
-				d := <-msgs
+			d := <-msgs
 
-				//for d := range msgs {
-				log.Printf(" -------------------------- Received a message: %s -------------------------------", d.Headers["filename"])
+			//for d := range msgs {
+			log.Printf(" -------------------------- Received a message: %s -------------------------------", d.Headers["filename"])
 
-				//d.Ack(false)
+			//d.Ack(false)
 
-				//filename := string(d.Headers["filename"])
+			//filename := string(d.Headers["filename"])
 
-				if filename, ok := d.Headers["filename"].(string); ok {
-					writeMessageToFile(d.Body, filename)
-					newInputFileName = updateInFile(filename)
-					//setReadFlag()
+			if filename, ok := d.Headers["filename"].(string); ok {
+				writeMessageToFile(d.Body, filename)
+				newInputFileName = updateInFile(filename)
+				//setReadFlag()
 
-					updateToProcessList(newInputFileName)
+				updateToProcessList(newInputFileName)
 
-					outputPath := "/starlight/data/output"
-					//check if output dir exists, if not create as not sure if Starlight will crete it
-					if exists, direrr := exists(outputPath); exists == false && direrr == nil {
-						println("Output directory does not exist, making it", outputPath)
-						err := os.Mkdir(outputPath, 0700)
-						if err != nil {
-							println("ERROR: ", err)
-						}
+				outputPath := "/starlight/data/output"
+				//check if output dir exists, if not create as not sure if Starlight will crete it
+				if exists, direrr := exists(outputPath); exists == false && direrr == nil {
+					println("Output directory does not exist, making it", outputPath)
+					err := os.Mkdir(outputPath, 0700)
+					if err != nil {
+						println("ERROR: ", err)
 					}
-
-
-					d.Ack(false)
-				} else {
-					log.Println("Error ", ok)
 				}
+
+				d.Ack(false)
+			} else {
+				log.Println("Error ", ok)
+			}
 			//}
 		}
 		log.Printf("Processed Messages")
@@ -124,18 +123,18 @@ func main() {
 }
 
 func touchFile(name string) error {
-    file, err := os.OpenFile(name, os.O_RDONLY|os.O_CREATE, 0644)
-    if err != nil {
-        return err
-    }
-    return file.Close()
+	file, err := os.OpenFile(name, os.O_RDONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	return file.Close()
 }
 
 func writeMessageToFile(body []byte, filename string) {
 	//TODO - review this, at the moment all data on a shared drive so this is actually unneccessary
 
 	println("Writing message to data file")
-	filepath := "/starlight/runtime/input/"
+	filepath := os.Getenv("DATA_FILE_PATH")
 
 	if exists, direrr := exists(filepath); exists == false && direrr == nil {
 		println("Input directory does not exist, making it", filepath)
@@ -152,8 +151,7 @@ func writeMessageToFile(body []byte, filename string) {
 
 func checkReadFlag() bool {
 	// checks for start_starlight file
-	DATA_FILE_FLAG := "/starlight/start_starlight"
-
+	DATA_FILE_FLAG := os.Getenv("DATA_FILE_FLAG")
 	if _, err := os.Stat(DATA_FILE_FLAG); err == nil {
 		//log.Println("File "+fi.Name())
 		return true
@@ -163,10 +161,10 @@ func checkReadFlag() bool {
 
 func updateToProcessList(inFileName string) {
 	log.Printf("Adding new .in file to ProcessList %s", inFileName)
-	PROCESS_LIST := "/starlight/runtime/processlist.txt"
+	PROCESS_LIST := os.Getenv("PROCESS_LIST")
 
 	//fix this it;s shite
-	if exists, direrr := exists(PROCESS_LIST ); exists == false && direrr == nil {
+	if exists, direrr := exists(PROCESS_LIST); exists == false && direrr == nil {
 		println("Error: ", PROCESS_LIST, " does not exist, creating it")
 		//creating file
 		touchFile(PROCESS_LIST)
@@ -175,15 +173,15 @@ func updateToProcessList(inFileName string) {
 
 	f, err := os.OpenFile(PROCESS_LIST, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	defer f.Close()
-	
+
 	if err != nil {
 		println("Error: could not open", PROCESS_LIST)
 		panic(err)
 	}
 
-	//add new .in file to bottom of list 
+	//add new .in file to bottom of list
 
-	if _, err = f.WriteString(inFileName+"\n"); err != nil {
+	if _, err = f.WriteString(inFileName + "\n"); err != nil {
 		panic(err)
 	}
 	println(inFileName, " has been added")
@@ -192,7 +190,7 @@ func updateToProcessList(inFileName string) {
 func setReadFlag() {
 	// creates the start_starlight file
 	log.Printf("Setting the read flag")
-	DATA_FILE_FLAG := "/starlight/start_starlight"
+	DATA_FILE_FLAG := os.Getenv("DATA_FILE_FLAG")
 
 	d1 := []byte("start")
 	err := os.WriteFile(DATA_FILE_FLAG, d1, 0666)
@@ -207,8 +205,8 @@ func updateInFile(inputFileName string) string {
 	templateInFilePath := "/docker/starlight/config_files_starlight/"
 	templateInFileName := "grid_example.in"
 	inFileOutputPath := "/starlight/runtime/infiles/"
-	newInFileName := "grid_example"+strconv.Itoa(rand.Int())+".in"
-	
+	newInFileName := "grid_example" + strconv.Itoa(rand.Int()) + ".in"
+
 	//fix this it;s shite
 	if exists, direrr := exists(templateInFilePath + templateInFileName); exists == false && direrr == nil {
 		println("Error: ", templateInFileName, " does not exist")
