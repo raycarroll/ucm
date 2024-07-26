@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -90,7 +91,11 @@ func mainRun() {
 		log.Fatal("INPUT_DIR  and OUTPUT_DIR environment variables is required")
 	}
 
-	producer := NewProducer(5, inputDir, outputDir, eventQueue)
+	batchSize, err := strconv.Atoi(os.Getenv("BATCH_SIZE"))
+	if err != nil {
+		log.Fatal("Failed to convert BATCH_SIZE to an integer")
+	}
+	producer := NewProducer(batchSize, inputDir, outputDir, eventQueue)
 
 	go func() {
 		for event := range eventQueue {

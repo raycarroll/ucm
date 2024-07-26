@@ -26,7 +26,7 @@ spec:
         - mountPath: /starlight/
           name: ucm-pv-storage
       containers:
-      - image: valeriiashapoval/ucm
+      - image: rayc/ucm-producer
         name: ucm-producer
         env:
         - name: RABBITMQ_USER
@@ -41,6 +41,8 @@ spec:
           value: "/starlight/data/input"
         - name: OUTPUT_DIR
           value: "/starlight/data/output"
+        - name: BATCH_SIZE
+          value: "5"
         ports:
         - containerPort: 5672
         volumeMounts:
