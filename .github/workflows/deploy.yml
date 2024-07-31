@@ -37,9 +37,18 @@ jobs:
             username: ${{ secrets.DOCKER_USERNAME }}
             password: ${{ secrets.DOCKER_PASSWORD }}
 
+        - name: Show default environment variables
+          run: |
+            echo "The var is: ${{ vars.DOCKER_REGISTRY }}"
+            echo "The var is: ${{ vars.DOCKER_REPO }}"            
+            echo "The var is: ${{ secrets.DOCKER_USERNAME }}"
+            echo "The var is: ${{ secrets.DOCKER_PASSWORD }}"
+            
         - name: Build the Docker image
           uses: docker/build-push-action@v6
           with:
             context: "{{defaultContext}}:${{ matrix.image.dockerfile }}"
             push: true
             tags: ${{ vars.DOCKER_REPO }}/${{ matrix.image.name }}:${{ matrix.image.tag }}
+
+
