@@ -14,6 +14,7 @@ spec:
       labels:
         app: ucm-producer
     spec:
+      serviceAccountName: starlight-sa
       volumes:
       - name: ucm-pv-storage
         persistentVolumeClaim:
@@ -21,6 +22,8 @@ spec:
       initContainers:
       - name: init
         image: busybox:1.28
+        securityContext:
+          privileged: true
         command: ['sh', '-c', 'if [ ! -d /starlight/data ];then mkdir /starlight/data;fi;if [ ! -d /starlight/runtime ];then mkdir /starlight/runtime;fi;if [ ! -d /starlight/runtime/infiles ];then mkdir /starlight/runtime/infiles;fi;if [ ! -d /starlight/runtime/input ];then mkdir /starlight/runtime/input;fi;if [ ! -d /starlight/data/input ];then mkdir /starlight/data/input;fi;if [ ! -d /starlight/data/output ];then mkdir /starlight/data/output;fi;if [ ! -d /starlight/data/input/processed ];then mkdir /starlight/data/input/processed;fi;if [ ! -d /starlight/runtime/processlist.txt ];then touch /starlight/runtime/processlist.txt;fi']
         volumeMounts:
         - mountPath: /starlight/
@@ -28,6 +31,8 @@ spec:
       containers:
       - image: rayc/ucm-producer
         name: ucm-producer
+        securityContext:
+          privileged: true
         env:
         - name: RABBITMQ_USER
           value: "guest"
@@ -48,4 +53,21 @@ spec:
         volumeMounts:
         - mountPath: /starlight/
           name: ucm-pv-storage
-
+      - image: sparkworks/ac3-connector-http-http-consumer:latest
+        name: consumer
+        env:
+        - name: WEB_BASE_URL
+          value: "http://192.168.1.10"
+        - name: WEB_HTTP_PORT
+          value: "28180"
+        - name: WEB_HTTP_MANAGEMENT_PORT
+          value: "28181"
+        - name: WEB_HTTP_PROTOCOL_PORT
+          value: "28182"
+        - name: WEB_HTTP_CONTROL_PORT
+          value: "28183"
+        ports:
+        - containerPort: 28180
+        - containerPort: 28181
+        - containerPort: 28182
+        - containerPort: 28183

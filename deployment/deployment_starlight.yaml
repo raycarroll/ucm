@@ -14,6 +14,7 @@ spec:
       labels:
         app: starlight
     spec:
+      serviceAccountName: starlight-sa
       volumes:
       - name: ucm-pv-storage
         persistentVolumeClaim:
@@ -22,6 +23,8 @@ spec:
       - name: init
         image: busybox:1.28
         command: ['sh', '-c', 'if [ ! -d /starlight/data ];then mkdir /starlight/data;fi;if [ ! -d /starlight/runtime ];then mkdir /starlight/runtime;fi;if [ ! -d /starlight/runtime/infiles ];then mkdir /starlight/runtime/infiles;fi;if [ ! -d /starlight/runtime/input ];then mkdir /starlight/runtime/input;fi;if [ ! -d /starlight/data/input ];then mkdir /starlight/data/input;fi;if [ ! -d /starlight/data/output ];then mkdir /starlight/data/output;fi;if [ ! -d /starlight/data/input/processed ];then mkdir /starlight/data/input/processed;fi;if [ ! -d /starlight/runtime/processlist.txt ];then touch /starlight/runtime/processlist.txt;fi']
+        securityContext:
+          privileged: true
         volumeMounts:
         - mountPath: /starlight/
           name: ucm-pv-storage
