@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -48,6 +51,12 @@ func (p *Producer) AddFile(file DataFile) {
 
 func (p *Producer) sendBatch() {
 	if len(p.batch) > 0 {
+		// Update the .in file before sending the batch
+		inFileName := p.updateInFile()
+		if inFileName != "" {
+			p.batch = append(p.batch, DataFile{Name: inFileName, Content: ""})
+		}
+
 		event := Event{Files: p.batch}
 		p.eventQueue <- event
 		p.moveProcessedFiles()
@@ -79,6 +88,53 @@ func (p *Producer) ReadFiles() {
 			p.AddFile(DataFile{Name: file.Name(), Content: string(content)})
 		}
 	}
+}
+
+func (p *Producer) updateInFile() string {
+	println("updating .in file")
+	templateInFilePath := "/docker/starlight/config_files_starlight/grid_example.in"
+	inFileOutputPath := "/starlight/runtime/infiles/"
+	newInFileName := fmt.Sprintf("grid_example_%d.in", rand.Int())
+
+	// Check if the template .in file exists
+	if exists, _ := exists(templateInFilePath); !exists {
+		println("Error: file does not exist")
+		return ""
+	}
+
+	f, err := os.Open(templateInFilePath)
+	defer f.Close()
+	if err != nil {
+		println("Error opening file")
+		panic(err)
+	}
+
+	scanner := bufio.NewScanner(f)
+	i := 0
+	var newFile string
+	for scanner.Scan() {
+		i++
+		if i == 16 {
+			// Replace the input file name in the .in file
+			res := strings.Split(scanner.Text(), "  ")
+			res[0] = p.batch[0].Name // Use the first file in the batch as the input file
+			res[5] = "output_" + p.batch[0].Name
+			overwrite_string := strings.Join(res, "  ")
+			newFile = newFile + overwrite_string + "\n"
+		} else {
+			newFile = newFile + scanner.Text() + "\n"
+		}
+	}
+
+	// Write the updated .in file to the output directory
+	log.Printf("Writing updated .in file to %s", inFileOutputPath+newInFileName)
+	err = os.WriteFile(inFileOutputPath+newInFileName, []byte(newFile), 0644)
+	if err != nil {
+		println("Error writing .in file: ", err.Error())
+		return ""
+	}
+
+	return newInFileName
 }
 
 func mainRun() {
@@ -167,4 +223,15 @@ func send(event Event) {
 		failOnError(err, "Failed to publish a message")
 		log.Printf(" [x] Sent %s\n", body[0:10])
 	}
+}
+
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
