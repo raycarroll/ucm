@@ -18,7 +18,7 @@ spec:
       volumes:
       - name: ucm-pv-storage
         persistentVolumeClaim:
-          claimName: ucm-pv-claim
+          claimName: ucm-pv-claim-producer
       initContainers:
       - name: init
         image: busybox:1.28
@@ -29,7 +29,7 @@ spec:
         - mountPath: /starlight/
           name: ucm-pv-storage
       containers:
-      - image: rayc/ucm-producer
+      - image: <username>/ucm-producer
         name: ucm-producer
         securityContext:
           privileged: true
@@ -53,7 +53,7 @@ spec:
         volumeMounts:
         - mountPath: /starlight/
           name: ucm-pv-storage
-      - image: sparkworks/ac3-connector-http-http-consumer:latest
+      - image: <username>/ac3-connector-http-http-consumer:latest
         name: consumer
         env:
         - name: WEB_BASE_URL
