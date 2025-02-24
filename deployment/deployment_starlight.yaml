@@ -31,6 +31,8 @@ spec:
       containers:
       - image: <username>/ucm-processor
         name: starlight
+        securityContext:
+          privileged: true
         workingDir: /docker/starlight/STARLIGHTv04
         command: ["./bash_script2.sh"]
         volumeMounts:
@@ -38,6 +40,8 @@ spec:
           name: ucm-pv-storage
       - image: <username>/ucm-receiver
         name: eventreceiver
+        securityContext:
+          privileged: true
         volumeMounts:
         - mountPath: /starlight/
           name: ucm-pv-storage
