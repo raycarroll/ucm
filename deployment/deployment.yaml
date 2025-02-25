@@ -48,6 +48,10 @@ spec:
           value: "/starlight/data/output"
         - name: BATCH_SIZE
           value: "5"
+        - name: TEMPLATE_IN_FILE_PATH
+          value: "/docker/starlight/config_files_starlight/grid_example.in"
+        - name: "IN_FILE_OUTPUT_PATH"
+          value: "/starlight/runtime/infiles/"
         ports:
         - containerPort: 5672
         volumeMounts:

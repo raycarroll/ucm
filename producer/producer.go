@@ -43,17 +43,13 @@ func NewProducer(batchSize int, inputDir, outputDir string, eventQueue chan Even
 }
 
 func (p *Producer) AddFile(file DataFile) {
-	log.Printf("AddFile start")
 	p.batch = append(p.batch, file)
-	log.Printf("p.batch = %s", len(p.batch))
 	if len(p.batch) >= p.batchSize {
 		p.sendBatch()
 	}
 }
 
 func (p *Producer) sendBatch() {
-	log.Printf("sendBatch start")
-	log.Printf("p.batch = %s", len(p.batch))
 	if len(p.batch) > 0 {
 		// Update the .in file before sending the batch
 		inFileName, content := p.updateInFile()
@@ -99,10 +95,10 @@ func (p *Producer) ReadFiles() {
 
 func (p *Producer) updateInFile() (string, string) {
 	println("updating .in file")
-	/*templateInFilePath := os.Getenv("TEMPLATE_IN_FILE_PATH")
-	inFileOutputPath := os.Getenv("IN_FILE_OUTPUT_PATH")*/
-	templateInFilePath := "/docker/starlight/config_files_starlight/grid_example.in"
-	inFileOutputPath := "/starlight/runtime/infiles/"
+	templateInFilePath := os.Getenv("TEMPLATE_IN_FILE_PATH")
+	inFileOutputPath := os.Getenv("IN_FILE_OUTPUT_PATH")
+	/*templateInFilePath := "/docker/starlight/config_files_starlight/grid_example.in"
+	inFileOutputPath := "/starlight/runtime/infiles/" */
 	newInFileName := fmt.Sprintf("grid_example_%d.in", rand.Intn(100))
 
 	// Check if the template .in file exists
@@ -196,7 +192,6 @@ func mainRun() {
 		}
 	}()
 	for {
-		log.Printf("Start read files")
 		producer.ReadFiles()
 		producer.sendBatch()
 		time.Sleep(10 * time.Second)
