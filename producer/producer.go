@@ -43,22 +43,29 @@ func NewProducer(batchSize int, inputDir, outputDir string, eventQueue chan Even
 }
 
 func (p *Producer) AddFile(file DataFile) {
+	log.Printf("AddFile start")
 	p.batch = append(p.batch, file)
+	log.Printf("p.batch = %s", len(p.batch))
 	if len(p.batch) >= p.batchSize {
 		p.sendBatch()
 	}
 }
 
 func (p *Producer) sendBatch() {
+	log.Printf("sendBatch start")
+	log.Printf("p.batch = %s", len(p.batch))
 	if len(p.batch) > 0 {
 		// Update the .in file before sending the batch
-		inFileName := p.updateInFile()
-		if inFileName != "" {
-			p.batch = append(p.batch, DataFile{Name: inFileName, Content: ""})
+		inFileName, content := p.updateInFile()
+		log.Printf(inFileName)
+		log.Printf(content)
+		if inFileName != "" && content != "" {
+			p.batch = append(p.batch, DataFile{Name: inFileName, Content: content})
 		}
 
 		event := Event{Files: p.batch}
 		p.eventQueue <- event
+		p.removeInFileFromBatch()
 		p.moveProcessedFiles()
 		p.batch = make([]DataFile, 0, p.batchSize)
 	}
@@ -90,16 +97,18 @@ func (p *Producer) ReadFiles() {
 	}
 }
 
-func (p *Producer) updateInFile() string {
+func (p *Producer) updateInFile() (string, string) {
 	println("updating .in file")
+	/*templateInFilePath := os.Getenv("TEMPLATE_IN_FILE_PATH")
+	inFileOutputPath := os.Getenv("IN_FILE_OUTPUT_PATH")*/
 	templateInFilePath := "/docker/starlight/config_files_starlight/grid_example.in"
 	inFileOutputPath := "/starlight/runtime/infiles/"
-	newInFileName := fmt.Sprintf("grid_example_%d.in", rand.Int())
+	newInFileName := fmt.Sprintf("grid_example_%d.in", rand.Intn(100))
 
 	// Check if the template .in file exists
 	if exists, _ := exists(templateInFilePath); !exists {
 		println("Error: file does not exist")
-		return ""
+		return "", ""
 	}
 
 	f, err := os.Open(templateInFilePath)
@@ -131,10 +140,38 @@ func (p *Producer) updateInFile() string {
 	err = os.WriteFile(inFileOutputPath+newInFileName, []byte(newFile), 0644)
 	if err != nil {
 		println("Error writing .in file: ", err.Error())
-		return ""
+		return "", ""
 	}
 
-	return newInFileName
+	// Read the content of the new .in file
+	content, err := os.ReadFile(inFileOutputPath + newInFileName)
+	if err != nil {
+		println("Error reading the newly created .in file:", err.Error())
+		return "", ""
+	}
+
+	return newInFileName, string(content)
+}
+func (p *Producer) removeInFileFromBatch() {
+	log.Printf("Removing .in file from batch")
+	filteredBatch := make([]DataFile, 0, len(p.batch))
+
+	for _, file := range p.batch {
+		if !strings.HasSuffix(file.Name, ".in") {
+			filteredBatch = append(filteredBatch, file)
+		} else {
+			inFilePath := filepath.Join("/starlight/runtime/infiles/", file.Name)
+			err := os.Remove(inFilePath)
+			if err != nil {
+				log.Printf("Error removing .in file %s: %v\n", inFilePath, err)
+			} else {
+				log.Printf("Successfully removed .in file: %s\n", inFilePath)
+			}
+		}
+
+	}
+
+	p.batch = filteredBatch
 }
 
 func mainRun() {
@@ -147,20 +184,19 @@ func mainRun() {
 		log.Fatal("INPUT_DIR  and OUTPUT_DIR environment variables is required")
 	}
 
-	batchSize, err := strconv.Atoi(os.Getenv("BATCH_SIZE"))
+	batchSize, err := strconv.Atoi("5")
 	if err != nil {
 		log.Fatal("Failed to convert BATCH_SIZE to an integer")
 	}
 	producer := NewProducer(batchSize, inputDir, outputDir, eventQueue)
-
 	go func() {
 		for event := range eventQueue {
-			fmt.Printf("Sent event with %d files\n", len(event.Files))
+			log.Printf("Sent event with %d files\n", len(event.Files))
 			send(event)
 		}
 	}()
-
 	for {
+		log.Printf("Start read files")
 		producer.ReadFiles()
 		producer.sendBatch()
 		time.Sleep(10 * time.Second)
@@ -221,7 +257,13 @@ func send(event Event) {
 				Headers:     headers,
 			})
 		failOnError(err, "Failed to publish a message")
-		log.Printf(" [x] Sent %s\n", body[0:10])
+
+		// Safely log the first 10 characters of the body
+		if len(body) >= 10 {
+			log.Printf(" [x] Sent %s\n", body[0:10])
+		} else {
+			log.Printf(" [x] Sent %s\n", body)
+		}
 	}
 }
 
