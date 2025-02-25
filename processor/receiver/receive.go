@@ -70,8 +70,16 @@ func main() {
 		for d := range msgs {
 			log.Printf(" -------------------------- Received a message: %s -------------------------------", d.Headers["filename"])
 
-			// Write the received file to the output directory
 			if filename, ok := d.Headers["filename"].(string); ok {
+
+				if strings.HasSuffix(filename, ".in") {
+					// If it's an .in file, add it to the process list and acknowledge the message
+					updateToProcessList(filename)
+					d.Ack(false)
+					continue
+				}
+
+				// Write the received file to the output directory
 				outputPath := os.Getenv("OUTPUT_DIR")
 				if outputPath == "" {
 					log.Fatal("OUTPUT_DIR environment variable is required")
@@ -93,11 +101,6 @@ func main() {
 					log.Printf("Error writing file %s: %v", filename, err)
 				} else {
 					log.Printf("Successfully wrote file %s to %s", filename, outputPath)
-				}
-
-				// Add the .in file to the processing list if it's an .in file
-				if strings.HasSuffix(filename, ".in") {
-					updateToProcessList(filename)
 				}
 
 				// Acknowledge the message
@@ -125,13 +128,10 @@ func updateToProcessList(inFileName string) {
 	log.Printf("Adding new .in file to ProcessList %s", inFileName)
 	PROCESS_LIST := os.Getenv("PROCESS_LIST")
 
-	if exists, _ := exists(PROCESS_LIST); !exists {
-		log.Printf("Process list file does not exist, creating it: %s", PROCESS_LIST)
-		err := os.WriteFile(PROCESS_LIST, []byte{}, 0644)
-		if err != nil {
-			log.Printf("Error creating process list file: %v", err)
-		}
+	if err := touchFile(PROCESS_LIST); err != nil {
+		log.Printf("Error creating process list file: %v", err)
 	}
+
 	// Append the .in file to the process list
 	f, err := os.OpenFile(PROCESS_LIST, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
