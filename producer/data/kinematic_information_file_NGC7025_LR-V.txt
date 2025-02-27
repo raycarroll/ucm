@@ -1,0 +1,11 @@
+File	Velocity(km/s)	Velocity_error(km/s)	Sigma(km/s)	Sigma_error(km/s)	h3	h3_error	h4	h4_error
+spectrum_xpos_00_ypos_00_fiber_number_0001_NGC7025_LR-V.txt	4922.06	6.19	169.20	7.65	-0.0201	0.0317	0.0268	0.0342
+spectrum_xpos_00_ypos_01_fiber_number_0002_NGC7025_LR-V.txt	4922.06	6.19	169.20	7.65	-0.0201	0.0317	0.0268	0.0342
+spectrum_xpos_00_ypos_02_fiber_number_0003_NGC7025_LR-V.txt	4922.06	6.19	169.20	7.65	-0.0201	0.0317	0.0268	0.0342
+spectrum_xpos_00_ypos_03_fiber_number_0004_NGC7025_LR-V.txt	4922.06	6.19	169.20	7.65	-0.0201	0.0317	0.0268	0.0342
+spectrum_xpos_00_ypos_04_fiber_number_0005_NGC7025_LR-V.txt	4922.06	6.19	169.20	7.65	-0.0201	0.0317	0.0268	0.0342
+spectrum_xpos_00_ypos_05_fiber_number_0006_NGC7025_LR-V.txt	4922.06	6.19	169.20	7.65	-0.0201	0.0317	0.0268	0.0342
+spectrum_xpos_00_ypos_06_fiber_number_0007_NGC7025_LR-V.txt	4877.36	5.64	184.06	7.47	0.0244	0.0268	0.0596	0.0287
+spectrum_xpos_00_ypos_07_fiber_number_0008_NGC7025_LR-V.txt	4877.36	5.64	184.06	7.47	0.0244	0.0268	0.0596	0.0287
+spectrum_xpos_00_ypos_08_fiber_number_0009_NGC7025_LR-V.txt	4877.36	5.64	184.06	7.47	0.0244	0.0268	0.0596	0.0287
+spectrum_xpos_00_ypos_09_fiber_number_0010_NGC7025_LR-V.txt	4877.36	5.64	184.06	7.47	0.0244	0.0268	0.0596	0.0287

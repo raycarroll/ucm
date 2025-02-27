@@ -122,10 +122,20 @@ func (p *Producer) updateInFile() (string, string) {
 		if i == 16 {
 			// Replace the input file name in the .in file
 			res := strings.Split(scanner.Text(), "  ")
-			res[0] = p.batch[0].Name // Use the first file in the batch as the input file
-			res[5] = "output_" + p.batch[0].Name
-			overwrite_string := strings.Join(res, "  ")
-			newFile = newFile + overwrite_string + "\n"
+			for j := 0; j < len(p.batch); j++ {
+				res[0] = p.batch[j].Name
+
+				// Get kinematic values for the current file
+				kinematicValues, err := p.getKinematicValues(p.batch[j].Name)
+				if err != nil {
+					log.Printf("Error getting kinematic values for file %s: %v", p.batch[j].Name, err)
+					continue
+				}
+				res[4] = kinematicValues // Update the 4th and 5th parameters with Velocity and Sigma
+				res[5] = "output_" + p.batch[j].Name
+				overwrite_string := strings.Join(res, "  ")
+				newFile = newFile + overwrite_string + "\n"
+			}
 		} else {
 			newFile = newFile + scanner.Text() + "\n"
 		}
@@ -148,6 +158,33 @@ func (p *Producer) updateInFile() (string, string) {
 
 	return newInFileName, string(content)
 }
+func (p *Producer) getKinematicValues(fileName string) (string, error) {
+	kinematicFilePath := "./data/kinematic_information_file_NGC7025_LR-V.txt"
+	file, err := os.Open(kinematicFilePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open kinematic file: %v", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if fields[0] == fileName {
+			velocity := fields[1]
+			sigma := fields[3]
+			log.Printf("%s %s", velocity, sigma)
+			return fmt.Sprintf("%s %s", velocity, sigma), nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("error reading kinematic file: %v", err)
+	}
+
+	return "", fmt.Errorf("file %s not found in kinematic information", fileName)
+}
+
 func (p *Producer) removeInFileFromBatch() {
 	log.Printf("Removing .in file from batch")
 	filteredBatch := make([]DataFile, 0, len(p.batch))
