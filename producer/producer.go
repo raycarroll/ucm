@@ -42,26 +42,31 @@ func NewProducer(batchSize int, inputDir, outputDir string, eventQueue chan Even
 	}
 }
 
-func (p *Producer) AddFile(file DataFile) {
+func (p *Producer) AddFile(file DataFile, appName string) {
 	p.batch = append(p.batch, file)
 	if len(p.batch) >= p.batchSize {
-		p.sendBatch()
+		p.sendBatch(appName)
 	}
 }
 
-func (p *Producer) sendBatch() {
+func (p *Producer) sendBatch(appName string) {
 	if len(p.batch) > 0 {
 		// Update the .in file before sending the batch
-		inFileName, content := p.updateInFile()
-		log.Printf(inFileName)
-		log.Printf(content)
-		if inFileName != "" && content != "" {
-			p.batch = append(p.batch, DataFile{Name: inFileName, Content: content})
+		if appName == "starlight" {
+			inFileName, content := p.updateInFile()
+			log.Printf(inFileName)
+			log.Printf(content)
+			if inFileName != "" && content != "" {
+				p.batch = append(p.batch, DataFile{Name: inFileName, Content: content})
+			}
 		}
-
 		event := Event{Files: p.batch}
 		p.eventQueue <- event
-		p.removeInFileFromBatch()
+
+		if appName == "starlight" {
+			p.removeInFileFromBatch()
+		}
+
 		p.moveProcessedFiles()
 		p.batch = make([]DataFile, 0, p.batchSize)
 	}
@@ -78,7 +83,7 @@ func (p *Producer) moveProcessedFiles() {
 	}
 }
 
-func (p *Producer) ReadFiles() {
+func (p *Producer) ReadFiles(appName string) {
 	files, err := os.ReadDir(p.inputDir)
 	failOnError(err, "Failed reading input directory")
 	for _, file := range files {
@@ -88,7 +93,7 @@ func (p *Producer) ReadFiles() {
 				log.Printf("Error reading file %s: %v\n", file.Name(), err)
 				continue
 			}
-			p.AddFile(DataFile{Name: file.Name(), Content: string(content)})
+			p.AddFile(DataFile{Name: file.Name(), Content: string(content)}, appName)
 		}
 	}
 }
@@ -173,6 +178,7 @@ func (p *Producer) getKinematicValues(fileName string) (string, error) {
 		if fields[0] == fileName {
 			velocity := fields[1]
 			sigma := fields[3]
+
 			return fmt.Sprintf("%s %s", velocity, sigma), nil
 		}
 	}
@@ -183,7 +189,6 @@ func (p *Producer) getKinematicValues(fileName string) (string, error) {
 
 	return "", fmt.Errorf("file %s not found in kinematic information", fileName)
 }
-
 func (p *Producer) removeInFileFromBatch() {
 	log.Printf("Removing .in file from batch")
 	filteredBatch := make([]DataFile, 0, len(p.batch))
@@ -192,7 +197,7 @@ func (p *Producer) removeInFileFromBatch() {
 		if !strings.HasSuffix(file.Name, ".in") {
 			filteredBatch = append(filteredBatch, file)
 		} else {
-			inFilePath := filepath.Join("/starlight/runtime/infiles/", file.Name)
+			inFilePath := filepath.Join("/app_data/starlight/runtime/infiles/", file.Name)
 			err := os.Remove(inFilePath)
 			if err != nil {
 				log.Printf("Error removing .in file %s: %v\n", inFilePath, err)
@@ -207,31 +212,76 @@ func (p *Producer) removeInFileFromBatch() {
 }
 
 func mainRun() {
+	// Run all three applications concurrently
+	for {
+		starlightApp()
+		ppfxApp()
+		steckmapApp()
+		log.Println("Checking for new files...")
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func createEvent(inputDir string, outputDir string, appName string) {
 	eventQueue := make(chan Event, 10)
 
-	inputDir := os.Getenv("INPUT_DIR")
-	outputDir := os.Getenv("OUTPUT_DIR")
-
 	if inputDir == "" || outputDir == "" {
-		log.Fatal("INPUT_DIR  and OUTPUT_DIR environment variables is required")
+		log.Fatal("INPUT_DIR and OUTPUT_DIR environment variables are required")
 	}
 
 	batchSize, err := strconv.Atoi("5")
 	if err != nil {
 		log.Fatal("Failed to convert BATCH_SIZE to an integer")
 	}
+
 	producer := NewProducer(batchSize, inputDir, outputDir, eventQueue)
+
 	go func() {
 		for event := range eventQueue {
 			log.Printf("Sent event with %d files\n", len(event.Files))
-			send(event)
+			send(event, appName)
 		}
 	}()
-	for {
-		producer.ReadFiles()
-		producer.sendBatch()
-		time.Sleep(10 * time.Second)
+
+	producer.ReadFiles(appName)
+	producer.sendBatch(appName)
+
+}
+
+// function to check directories and process files
+func getDirectoriesWithFiles(inputDirEnv string, outputDirEnv string, appName string) {
+	inputDir := os.Getenv(inputDirEnv)
+	outputDir := os.Getenv(outputDirEnv)
+
+	if inputDir == "" || outputDir == "" {
+		log.Printf("%s directories not set\n", appName)
+		return
 	}
+
+	files, err := os.ReadDir(inputDir)
+	if err != nil {
+		log.Printf("Error reading %s input directory: %v\n", appName, err)
+		return
+	}
+
+	if len(files) > 0 {
+		log.Printf("Processing %s files...\n", appName)
+		createEvent(inputDir, outputDir, appName)
+	} else {
+		log.Printf("No files found in %s directories\n", appName)
+	}
+}
+
+func starlightApp() {
+	getDirectoriesWithFiles("INPUT_DIR_Starlight", "OUTPUT_DIR_Starlight", "starlight")
+}
+
+func ppfxApp() {
+	getDirectoriesWithFiles("INPUT_DIR_PPFX", "OUTPUT_DIR_PPFX", "ppfx")
+}
+
+func steckmapApp() {
+	getDirectoriesWithFiles("INPUT_DIR_Steckmap", "OUTPUT_DIR_Steckmap", "steckmap")
 }
 
 func failOnError(err error, msg string) {
@@ -244,7 +294,7 @@ func MoveFile(source, destination string) error {
 	return os.Rename(source, destination)
 }
 
-func send(event Event) {
+func send(event Event, appName string) {
 	username := os.Getenv("RABBITMQ_USER")
 	password := os.Getenv("RABBITMQ_PASSWORD")
 	host := os.Getenv("RABBITMQ_HOST")
@@ -260,12 +310,12 @@ func send(event Event) {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"starlight", // name
-		true,        // durable
-		false,       // delete when unused
-		false,       // exclusive
-		false,       // no-wait
-		nil,         // arguments
+		appName, // dynamic queue name
+		true,    // durable
+		false,   // delete when unused
+		false,   // exclusive
+		false,   // no-wait
+		nil,     // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
 
