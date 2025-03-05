@@ -173,7 +173,6 @@ func (p *Producer) getKinematicValues(fileName string) (string, error) {
 		if fields[0] == fileName {
 			velocity := fields[1]
 			sigma := fields[3]
-			log.Printf("%s %s", velocity, sigma)
 			return fmt.Sprintf("%s %s", velocity, sigma), nil
 		}
 	}
