@@ -34,15 +34,19 @@ func main() {
 	failOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
-	q, err := ch.QueueDeclare(
-		"starlight", // name
-		true,        // durable
-		false,       // delete when unused
-		false,       // exclusive
-		false,       // no-wait
-		nil,         // arguments
-	)
-	failOnError(err, "Failed to declare a queue")
+	// Declare queues for each application
+	queues := []string{"starlight", "ppfx", "steckmap"}
+	for _, queue := range queues {
+		_, err = ch.QueueDeclare(
+			queue, // name
+			true,  // durable
+			false, // delete when unused
+			false, // exclusive
+			false, // no-wait
+			nil,   // arguments
+		)
+		failOnError(err, fmt.Sprintf("Failed to declare queue: %s", queue))
+	}
 
 	err = ch.Qos(
 		1,     // prefetch count
@@ -51,65 +55,86 @@ func main() {
 	)
 	failOnError(err, "Failed to set QoS")
 
-	msgs, err := ch.Consume(
-		q.Name, // queue
-		"",     // consumer
-		false,  // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
-	)
-
-	failOnError(err, "Failed to register a consumer")
-
+	// Consume messages from all queues
 	var forever chan struct{}
 
-	go func() {
-		log.Printf(" -------------------------- Iterating messages  -------------------------------")
-		for d := range msgs {
-			log.Printf(" -------------------------- Received a message: %s -------------------------------", d.Headers["filename"])
+	for _, queue := range queues {
+		msgs, err := ch.Consume(
+			queue, // queue
+			"",    // consumer
+			false, // auto-ack
+			false, // exclusive
+			false, // no-local
+			false, // no-wait
+			nil,   // args
+		)
+		failOnError(err, fmt.Sprintf("Failed to register a consumer for queue: %s", queue))
 
-			if filename, ok := d.Headers["filename"].(string); ok {
+		go func(queue string) {
+			log.Printf(" -------------------------- Iterating messages for queue: %s -------------------------------", queue)
+			for d := range msgs {
+				log.Printf(" -------------------------- Received a message from queue: %s -------------------------------", queue)
+				log.Printf("Headers: %v", d.Headers["filename"])
 
-				if strings.HasSuffix(filename, ".in") {
-					// If it's an .in file, add it to the process list and acknowledge the message
-					updateToProcessList(filename)
-					d.Ack(false)
-					continue
-				}
+				if filename, ok := d.Headers["filename"].(string); ok {
+					var outputPath string
 
-				// Write the received file to the output directory
-				outputPath := os.Getenv("OUTPUT_DIR")
-				if outputPath == "" {
-					log.Fatal("OUTPUT_DIR environment variable is required")
-				}
-
-				// Ensure the output directory exists
-				if exists, _ := exists(outputPath); !exists {
-					log.Printf("Output directory does not exist, creating it: %s", outputPath)
-					err := os.Mkdir(outputPath, 0700)
-					if err != nil {
-						log.Printf("Error creating output directory: %v", err)
+					// Determine the output directory based on the queue name
+					switch queue {
+					case "starlight":
+						outputPath = os.Getenv("OUTPUT_DIR_STARLIGHT")
+					case "ppfx":
+						outputPath = os.Getenv("OUTPUT_DIR_PPFX")
+					case "steckmap":
+						outputPath = os.Getenv("OUTPUT_DIR_STECKMAP")
+					default:
+						log.Printf("Unknown queue: %s", queue)
+						d.Nack(false, true) // Reject the message and requeue it
+						continue
 					}
-				}
+					if outputPath == "" {
+						log.Printf("Output directory not set for queue: %s", queue)
+						d.Nack(false, true) // Reject the message and requeue it
+						continue
+					}
 
-				// Write the file content to the output directory
-				filePath := filepath.Join(outputPath, filename)
-				err := os.WriteFile(filePath, d.Body, 0644)
-				if err != nil {
-					log.Printf("Error writing file %s: %v", filename, err)
+					if strings.HasSuffix(filename, ".in") {
+						// If it's an .in file, add it to the process list and acknowledge the message
+						updateToProcessList(filename)
+						d.Ack(false)
+						continue
+					}
+
+					// Write the received file to the output directory
+
+					// Ensure the output directory exists
+					if exists, _ := exists(outputPath); !exists {
+						log.Printf("Output directory does not exist, creating it: %s", outputPath)
+						err := os.Mkdir(outputPath, 0700)
+						if err != nil {
+							log.Printf("Error creating output directory: %v", err)
+							d.Nack(false, true) // Reject the message and requeue it
+							continue
+						}
+					}
+
+					// Write the file content to the output directory
+					filePath := filepath.Join(outputPath, filename)
+					err := os.WriteFile(filePath, d.Body, 0644)
+					if err != nil {
+						log.Printf("Error writing file %s: %v", filename, err)
+						d.Nack(false, true) // Reject the message and requeue it
+					} else {
+						log.Printf("Successfully wrote file %s to %s", filename, outputPath)
+						d.Ack(false) // Acknowledge the message
+					}
 				} else {
-					log.Printf("Successfully wrote file %s to %s", filename, outputPath)
+					log.Printf("Error: filename header is missing or invalid")
+					d.Nack(false, true) // Reject the message and requeue it
 				}
-
-				// Acknowledge the message
-				d.Ack(false)
-			} else {
-				log.Printf("Error: filename header is missing or invalid")
 			}
-		}
-	}()
+		}(queue)
+	}
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever

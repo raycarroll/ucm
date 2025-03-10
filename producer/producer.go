@@ -197,7 +197,7 @@ func (p *Producer) removeInFileFromBatch() {
 		if !strings.HasSuffix(file.Name, ".in") {
 			filteredBatch = append(filteredBatch, file)
 		} else {
-			inFilePath := filepath.Join("/app_data/starlight/runtime/infiles/", file.Name)
+			inFilePath := filepath.Join("/processing_data/starlight/runtime/infiles/", file.Name)
 			err := os.Remove(inFilePath)
 			if err != nil {
 				log.Printf("Error removing .in file %s: %v\n", inFilePath, err)

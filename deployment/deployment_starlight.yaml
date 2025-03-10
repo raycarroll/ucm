@@ -22,7 +22,7 @@ spec:
       initContainers:
       - name: init
         image: busybox:1.28
-        command: ['sh', '-c', 'if [ ! -d /starlight/data ];then mkdir /starlight/data;fi;if [ ! -d /starlight/runtime ];then mkdir /starlight/runtime;fi;if [ ! -d /starlight/runtime/infiles ];then mkdir /starlight/runtime/infiles;fi;if [ ! -d /starlight/runtime/input ];then mkdir /starlight/runtime/input;fi;if [ ! -d /starlight/data/input ];then mkdir /starlight/data/input;fi;if [ ! -d /starlight/data/output ];then mkdir /starlight/data/output;fi;if [ ! -d /starlight/data/input/processed ];then mkdir /starlight/data/input/processed;fi;if [ ! -d /starlight/runtime/processlist.txt ];then touch /starlight/runtime/processlist.txt;fi']
+        command: ['sh', '-c', 'if [ ! -d /starlight/data ];then mkdir /starlight/data;fi;if [ ! -d /starlight/ppfx];then mkdir /starlight/ppfx;fi;if [ ! -d /starlight/steckmap ];then mkdir /starlight/steckmap;fi;if [ ! -d /starlight/runtime ];then mkdir /starlight/runtime;fi;if [ ! -d /starlight/runtime/infiles ];then mkdir /starlight/runtime/infiles;fi;if [ ! -d /starlight/runtime/input ];then mkdir /starlight/runtime/input;fi;if [ ! -d /starlight/data/input ];then mkdir /starlight/data/input;fi;if [ ! -d /starlight/data/output ];then mkdir /starlight/data/output;fi;if [ ! -d /starlight/data/input/processed ];then mkdir /starlight/data/input/processed;fi;if [ ! -d /starlight/runtime/processlist.txt ];then touch /starlight/runtime/processlist.txt;fi']
         securityContext:
           privileged: true
         volumeMounts:
@@ -56,5 +56,9 @@ spec:
           value: "/starlight/start_starlight"
         - name: PROCESS_LIST
           value: "/starlight/runtime/processlist.txt" 
-        - name: OUTPUT_DIR
+        - name: OUTPUT_DIR_STARLIGHT
           value: "/starlight/data/output"
+        - name: OUTPUT_DIR_PPFX
+          value: "/starlight/ppfx"
+        - name: OUTPUT_DIR_STECKMAP
+          value: "/starlight/steckmap"

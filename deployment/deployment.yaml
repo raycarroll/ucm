@@ -22,9 +22,9 @@ spec:
       initContainers:
       - name: init
         image: busybox:1.28
-        command: ['sh', '-c', 'mkdir -p /data/starlight/data /data/starlight/runtime /data/starlight/runtime/infiles /data/starlight/runtime/input /data/starlight/data/input /data/starlight/data/output /data/ppfx/data/input /data/ppfx/data/output /data/steckmap/data/input /data/steckmap/data/output']
+        command: ['sh', '-c', 'mkdir -p /processing_data/starlight/data /processing_data/starlight/runtime /processing_data/starlight/runtime/infiles /processing_data/starlight/runtime/input /processing_data/starlight/data/input /processing_data/starlight/data/output /processing_data/ppfx/data/input /processing_data/ppfx/data/output /processing_data/steckmap/data/input /processing_data/steckmap/data/output']
         volumeMounts:
-        - mountPath: /processing_data
+        - mountPath: /processing_data/
           name: ucm-pv-storage
       containers:
       - image: rayc/ucm-producer
@@ -40,20 +40,26 @@ spec:
           value: "rabbitmq"
         - name: RABBITMQ_PORT
           value: "5672"
-        - name: INPUT_DIR
-          value: "/starlight/data/input"
-        - name: OUTPUT_DIR
-          value: "/starlight/data/output"
-        - name: BATCH_SIZE
-          value: "5"
+        - name: INPUT_DIR_Starlight
+          value: "/processing_data/starlight/data/input"
+        - name: OUTPUT_DIR_Starlight
+          value: "/processing_data/starlight/data/output"
+        - name: INPUT_DIR_PPFX
+          value: "/processing_data/ppfx/data/input"
+        - name: OUTPUT_DIR_PPFX
+          value: "/processing_data/ppfx/data/output"
+        - name: INPUT_DIR_Steckmap
+          value: "/processing_data/steckmap/data/input"
+        - name: OUTPUT_DIR_Steckmap
+          value: "/processing_data/steckmap/data/output"
         - name: TEMPLATE_IN_FILE_PATH
           value: "/docker/starlight/config_files_starlight/grid_example.in"
         - name: "IN_FILE_OUTPUT_PATH"
-          value: "/starlight/runtime/infiles/"
+          value: "/processing_data/starlight/runtime/infiles/"
         ports:
         - containerPort: 5672
         volumeMounts:
-        - mountPath: /starlight/
+        - mountPath: /processing_data/
           name: ucm-pv-storage
       - image: sparkworks/ac3-connector-http-http-consumer:latest
         name: consumer
