@@ -56,3 +56,5 @@ spec:
           value: "/starlight/start_starlight"
         - name: PROCESS_LIST
           value: "/starlight/runtime/processlist.txt" 
+        - name: OUTPUT_DIR
+          value: "/starlight/data/output"
