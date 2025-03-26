@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -54,8 +55,8 @@ func (p *Producer) sendBatch(appName string) {
 		// Update the .in file before sending the batch
 		if appName == "starlight" {
 			inFileName, content := p.updateInFile()
-			log.Printf(inFileName)
-			log.Printf(content)
+			//log.Printf(inFileName)
+			//log.Printf(content)
 			if inFileName != "" && content != "" {
 				p.batch = append(p.batch, DataFile{Name: inFileName, Content: content})
 			}
@@ -99,7 +100,7 @@ func (p *Producer) ReadFiles(appName string) {
 }
 
 func (p *Producer) updateInFile() (string, string) {
-	println("updating .in file")
+	//println("updating .in file")
 	templateInFilePath := os.Getenv("TEMPLATE_IN_FILE_PATH")
 	inFileOutputPath := os.Getenv("IN_FILE_OUTPUT_PATH")
 	/*templateInFilePath := "/docker/starlight/config_files_starlight/grid_example.in"
@@ -147,7 +148,7 @@ func (p *Producer) updateInFile() (string, string) {
 	}
 
 	// Write the updated .in file to the output directory
-	log.Printf("Writing updated .in file to %s", inFileOutputPath+newInFileName)
+	//log.Printf("Writing updated .in file to %s", inFileOutputPath+newInFileName)
 	err = os.WriteFile(inFileOutputPath+newInFileName, []byte(newFile), 0644)
 	if err != nil {
 		println("Error writing .in file: ", err.Error())
@@ -190,7 +191,7 @@ func (p *Producer) getKinematicValues(fileName string) (string, error) {
 	return "", fmt.Errorf("file %s not found in kinematic information", fileName)
 }
 func (p *Producer) removeInFileFromBatch() {
-	log.Printf("Removing .in file from batch")
+	//log.Printf("Removing .in file from batch")
 	filteredBatch := make([]DataFile, 0, len(p.batch))
 
 	for _, file := range p.batch {
@@ -214,8 +215,8 @@ func (p *Producer) removeInFileFromBatch() {
 func mainRun() {
 	// Run all three applications concurrently
 	for {
-		starlightApp()
 		ppfxApp()
+		starlightApp()
 		steckmapApp()
 		log.Println("Checking for new files...")
 		time.Sleep(10 * time.Second)
@@ -229,7 +230,7 @@ func createEvent(inputDir string, outputDir string, appName string) {
 		log.Fatal("INPUT_DIR and OUTPUT_DIR environment variables are required")
 	}
 
-	batchSize, err := strconv.Atoi("5")
+	batchSize, err := strconv.Atoi(os.Getenv("BATCH_SIZE"))
 	if err != nil {
 		log.Fatal("Failed to convert BATCH_SIZE to an integer")
 	}
@@ -271,25 +272,20 @@ func getDirectoriesWithFiles(inputDirEnv string, outputDirEnv string, appName st
 		log.Printf("No files found in %s directories\n", appName)
 	}
 }
-
 func starlightApp() {
 	getDirectoriesWithFiles("INPUT_DIR_Starlight", "OUTPUT_DIR_Starlight", "starlight")
 }
-
 func ppfxApp() {
 	getDirectoriesWithFiles("INPUT_DIR_PPFX", "OUTPUT_DIR_PPFX", "ppfx")
 }
-
 func steckmapApp() {
 	getDirectoriesWithFiles("INPUT_DIR_Steckmap", "OUTPUT_DIR_Steckmap", "steckmap")
 }
-
 func failOnError(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err.Error())
 	}
 }
-
 func MoveFile(source, destination string) error {
 	return os.Rename(source, destination)
 }
@@ -322,30 +318,34 @@ func send(event Event, appName string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// Serialize the entire event (batch of files) to JSON
+	eventJSON, err := json.Marshal(event)
+	failOnError(err, "Failed to marshal event to JSON")
+
+	headers := make(amqp.Table)
+	headers["batch_size"] = len(event.Files)
+
+	// Include all filenames in headers
+	var filenames []string
 	for _, f := range event.Files {
-		body := f.Content
-		headers := make(amqp.Table)
-		headers["filename"] = f.Name
-
-		err = ch.PublishWithContext(ctx,
-			"",     // exchange
-			q.Name, // routing key
-			false,  // mandatory
-			false,  // immediate
-			amqp.Publishing{
-				ContentType: "text/plain",
-				Body:        []byte(body),
-				Headers:     headers,
-			})
-		failOnError(err, "Failed to publish a message")
-
-		// Safely log the first 10 characters of the body
-		if len(body) >= 10 {
-			log.Printf(" [x] Sent %s\n", body[0:10])
-		} else {
-			log.Printf(" [x] Sent %s\n", body)
-		}
+		filenames = append(filenames, f.Name)
 	}
+	headers["filenames"] = strings.Join(filenames, ",")
+
+	err = ch.PublishWithContext(ctx,
+		"",     // exchange
+		q.Name, // routing key
+		false,  // mandatory
+		false,  // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        eventJSON,
+			Headers:     headers,
+		})
+	failOnError(err, "Failed to publish a message")
+
+	log.Printf(" [x] Sent batch with %d files\n", len(event.Files))
+	log.Printf("     Files: %s\n", strings.Join(filenames, ", "))
 }
 
 func exists(path string) (bool, error) {
