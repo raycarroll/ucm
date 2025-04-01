@@ -18,19 +18,21 @@ spec:
       volumes:
       - name: ucm-pv-storage
         persistentVolumeClaim:
-          claimName: ucm-pv-claim
+          claimName: ucm-pv-claim-producer
       initContainers:
       - name: init
         image: busybox:1.28
+        securityContext:
+          privileged: true
         command: ['sh', '-c', 'mkdir -p /processing_data/starlight/data /processing_data/starlight/runtime /processing_data/starlight/runtime/infiles /processing_data/starlight/runtime/input /processing_data/starlight/data/input /processing_data/starlight/data/output /processing_data/ppfx/data/input /processing_data/ppfx/data/output /processing_data/steckmap/data/input /processing_data/steckmap/data/output']
         volumeMounts:
         - mountPath: /processing_data/
           name: ucm-pv-storage
       containers:
-      - image: rayc/ucm-producer
+      - image: quay.io/rh-ee-kromashk/ucm-producer
         name: ucm-producer
         securityContext:
-          privileged: true
+           privileged: true
         env:
         - name: RABBITMQ_USER
           value: "guest"
@@ -40,6 +42,8 @@ spec:
           value: "rabbitmq"
         - name: RABBITMQ_PORT
           value: "5672"
+        - name: BATCH_SIZE
+          value: "5"
         - name: INPUT_DIR_Starlight
           value: "/processing_data/starlight/data/input"
         - name: OUTPUT_DIR_Starlight
@@ -61,21 +65,4 @@ spec:
         volumeMounts:
         - mountPath: /processing_data/
           name: ucm-pv-storage
-      - image: sparkworks/ac3-connector-http-http-consumer:latest
-        name: consumer
-        env:
-        - name: WEB_BASE_URL
-          value: "http://192.168.1.10"
-        - name: WEB_HTTP_PORT
-          value: "28180"
-        - name: WEB_HTTP_MANAGEMENT_PORT
-          value: "28181"
-        - name: WEB_HTTP_PROTOCOL_PORT
-          value: "28182"
-        - name: WEB_HTTP_CONTROL_PORT
-          value: "28183"
-        ports:
-        - containerPort: 28180
-        - containerPort: 28181
-        - containerPort: 28182
-        - containerPort: 28183
+       

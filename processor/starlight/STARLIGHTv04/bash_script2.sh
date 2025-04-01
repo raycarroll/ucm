@@ -3,65 +3,71 @@
 
 set -x
 
-# Path to the executable and process list
+# Ruta al ejecutable y al archivo de entrada
 EXECUTABLE="/docker/starlight/STARLIGHTv04/StarlightChains_v04.amd64_g77-3.4.6-r1_static.exe"
-PROCESS_FILE="/starlight/runtime/processlist.txt"
-INFILES_DIR="/starlight/runtime/infiles"
+#INPUT_FILE="/starlight/config_files_starlight/grid_example.in"
+#DATA_FILE_FLAG="/starlight/start_starlight"
+PROCESS_FILE="/processing/starlight/runtime/processlist.txt"
 
-# Function to remove the first line from the process list
-removeInFileFromList() {
-    echo "Before removal:"
-    cat "$PROCESS_FILE"
-    sed -i '1d' "$PROCESS_FILE"
-    echo "After removal:"
-    cat "$PROCESS_FILE"
+removeInFileFromList(){
+    echo "before"
+    cat $PROCESS_FILE
+    sed -i '1d' $PROCESS_FILE
+    echo "after"
+    cat $PROCESS_FILE
 }
 
-# Function to check if a file exists and is readable
-file_exists_and_readable() {
-    if [[ -f "$1" && -r "$1" ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
+# Verificar si el ejecutable existe
+#if [ ! -f "$EXECUTABLE" ]; then
+#    echo "Error: No se encontró el ejecutable $EXECUTABLE"
+#    exit 1
+#fi
 
 
 while :
 do
-    echo "Reading next line from process list..."
-    firstline=$(head -n 1 "$PROCESS_FILE" | xargs) 
+    echo "Reading Next Line"
+    read -r firstline</processing/starlight/runtime/processlist.txt
+    echo "NEXT FILE = "$firstline
 
-    if [[ -z "$firstline" ]]; then
-        echo "Process list is empty. Waiting for new files..."
+    if [[ "$firstline" = "" ]]; then # TODO fix this to check for empty values properly
+    ##TODO CROSS CHECK FILE IS PRESENT
+        echo "Waiting for data file to start"
     else
-        echo "Next file to process: $firstline"
+        echo "Starting Application with input " /processing/starlight/runtime/infiles/$firstline
+        
+        #./StarlightChains_v04.amd64_g77-3.4.6-r1_static.exe < /starlight/grid_example.in
+        ./StarlightChains_v04.amd64_g77-3.4.6-r1_static.exe < /processing/starlight/runtime/infiles/$firstline
+        exit_code=$?
 
-        # Check if the .in file exists
-        in_file_path="$INFILES_DIR/$firstline"
-        if file_exists_and_readable "$in_file_path"; then
-            echo "Starting application with input file: $in_file_path"
-
-            # Run the executable with the .in file as input
-            "$EXECUTABLE" < "$in_file_path"
-            exit_code=$?
-
-            if [ $exit_code -ne 0 ]; then
-                echo "Error: Application failed with exit code $exit_code"
-            else
-                echo "Application completed successfully"
-            fi
-
-            # Remove the processed .in file from the process list
-            echo "Removing processed file from the process list..."
-            removeInFileFromList
-        else
-            echo "Error: Input file $in_file_path does not exist or is not readable"
-            # Remove the invalid entry from the process list to avoid blocking the queue
-            removeInFileFromList
+        if [ $exit_code -ne 0 ]; then
+            echo "Error"
         fi
-    fi
+        
+        echo "Removing Start Flag"
+        removeInFileFromList
+        echo "Complete"
 
-    # Sleep for a while before checking the process list again
+    fi
+    #if flag set
+#    if [ ! -f "$DATA_FILE_FLAG" ]; then
+#        echo "Waiting for data file to start"
+#    else
+#        echo "Starting Application"
+#        ./StarlightChains_v04.amd64_g77-3.4.6-r1_static.exe < /starlight/grid_example.in
+#        exit_code=$?
+
+#        if [ $exit_code -ne 0 ]; then
+#            echo "Error"
+#        fi
+#        
+#        echo "Removing Start Flag"
+#        rm "$DATA_FILE_FLAG"
+#        echo "Complete"
+#        ls -al "$DATA_FILE_FLAG"
+#    fi
     sleep 10
 done
+
+
+## need to handle errors, remove flag or flag error
