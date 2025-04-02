@@ -9,8 +9,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: starlight-sa
-# - kind: ServiceAccount
-#   name: ppfx-sa
-# - kind: ServiceAccount
-#   name: steckmap-sa
   

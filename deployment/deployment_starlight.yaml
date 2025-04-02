@@ -60,3 +60,25 @@ spec:
           value: "/processing/ppfx/data/output"
         - name: OUTPUT_DIR_STECKMAP
           value: "/processing/steckmap/data/output"
+      - image: quay.io/rh-ee-kromashk/ucm-watcher
+        name: ucm-watcher
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /starlight/
+          name: ucm-pv-storage
+        env:
+        - name: RABBITMQ_USER
+          value: "guest"
+        - name: RABBITMQ_PASSWORD
+          value: "guest"
+        - name: RABBITMQ_HOST
+          value: "rabbitmq"
+        - name: RABBITMQ_PORT
+          value: "5672"
+        - name: INPUT_DIR
+          value: "/starlight/data/output"
+        - name: BATCH_SIZE
+          value: "5"
+        ports:
+        - containerPort: 5672
