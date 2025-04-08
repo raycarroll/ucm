@@ -65,7 +65,7 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - mountPath: /starlight/
+        - mountPath: /processing/
           name: ucm-pv-storage
         env:
         - name: RABBITMQ_USER
@@ -76,8 +76,8 @@ spec:
           value: "rabbitmq"
         - name: RABBITMQ_PORT
           value: "5672"
-        - name: INPUT_DIR
-          value: "/starlight/data/output"
+        - name: OUTPUT_DIR_STARLIGHT
+          value: "/processing/starlight/data/output"
         - name: BATCH_SIZE
           value: "5"
         ports:

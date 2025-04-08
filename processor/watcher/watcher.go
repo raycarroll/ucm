@@ -188,9 +188,9 @@ func failOnError(err error, msg string) {
 func main() {
 	eventQueue := make(chan Event, 10)
 	// Directory to watch
-	dirToWatch := os.Getenv("INPUT_DIR")
+	dirToWatch := os.Getenv("OUTPUT_DIR_STARLIGHT")
 	if dirToWatch == "" {
-		log.Fatal("INPUT_DIR environment variable is required")
+		log.Fatal("OUTPUT_DIR_STARLIGHT environment variable is required")
 	}
 
 	batchSize, err := strconv.Atoi(os.Getenv("BATCH_SIZE"))
