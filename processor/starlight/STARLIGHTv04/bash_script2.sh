@@ -6,8 +6,8 @@ set -x
 # Ruta al ejecutable y al archivo de entrada
 EXECUTABLE="/docker/starlight/STARLIGHTv04/StarlightChains_v04.amd64_g77-3.4.6-r1_static.exe"
 #INPUT_FILE="/starlight/config_files_starlight/grid_example.in"
-DATA_FILE_FLAG="/starlight/start_starlight"
-PROCESS_FILE="/starlight/runtime/processlist.txt"
+#DATA_FILE_FLAG="/starlight/start_starlight"
+PROCESS_FILE="/processing/starlight/runtime/processlist.txt"
 
 removeInFileFromList(){
     echo "before"
@@ -27,17 +27,17 @@ removeInFileFromList(){
 while :
 do
     echo "Reading Next Line"
-    read -r firstline</starlight/runtime/processlist.txt
+    read -r firstline</processing/starlight/runtime/processlist.txt
     echo "NEXT FILE = "$firstline
 
     if [[ "$firstline" = "" ]]; then # TODO fix this to check for empty values properly
     ##TODO CROSS CHECK FILE IS PRESENT
         echo "Waiting for data file to start"
     else
-        echo "Starting Application with input " /starlight/runtime/infiles/$firstline
+        echo "Starting Application with input " /processing/starlight/runtime/infiles/$firstline
         
         #./StarlightChains_v04.amd64_g77-3.4.6-r1_static.exe < /starlight/grid_example.in
-        ./StarlightChains_v04.amd64_g77-3.4.6-r1_static.exe < /starlight/runtime/infiles/$firstline
+        ./StarlightChains_v04.amd64_g77-3.4.6-r1_static.exe < /processing/starlight/runtime/infiles/$firstline
         exit_code=$?
 
         if [ $exit_code -ne 0 ]; then

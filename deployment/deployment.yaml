@@ -18,21 +18,21 @@ spec:
       volumes:
       - name: ucm-pv-storage
         persistentVolumeClaim:
-          claimName: ucm-pv-claim
+          claimName: ucm-pv-claim-producer
       initContainers:
       - name: init
         image: busybox:1.28
         securityContext:
           privileged: true
-        command: ['sh', '-c', 'if [ ! -d /starlight/data ];then mkdir /starlight/data;fi;if [ ! -d /starlight/runtime ];then mkdir /starlight/runtime;fi;if [ ! -d /starlight/runtime/infiles ];then mkdir /starlight/runtime/infiles;fi;if [ ! -d /starlight/runtime/input ];then mkdir /starlight/runtime/input;fi;if [ ! -d /starlight/data/input ];then mkdir /starlight/data/input;fi;if [ ! -d /starlight/data/output ];then mkdir /starlight/data/output;fi;if [ ! -d /starlight/data/input/processed ];then mkdir /starlight/data/input/processed;fi;if [ ! -d /starlight/runtime/processlist.txt ];then touch /starlight/runtime/processlist.txt;fi']
+        command: ['sh', '-c', 'mkdir -p /processing_data/starlight/data /processing_data/starlight/runtime /processing_data/starlight/runtime/infiles /processing_data/starlight/runtime/input /processing_data/starlight/data/input /processing_data/starlight/data/output /processing_data/ppfx/data/input /processing_data/ppfx/data/output /processing_data/steckmap/data/input /processing_data/steckmap/data/output']
         volumeMounts:
-        - mountPath: /starlight/
+        - mountPath: /processing_data/
           name: ucm-pv-storage
       containers:
-      - image: rayc/ucm-producer
+      - image: quay.io/rh-ee-kromashk/ucm-producer
         name: ucm-producer
         securityContext:
-          privileged: true
+           privileged: true
         env:
         - name: RABBITMQ_USER
           value: "guest"
@@ -42,22 +42,30 @@ spec:
           value: "rabbitmq"
         - name: RABBITMQ_PORT
           value: "5672"
-        - name: INPUT_DIR
-          value: "/starlight/data/input"
-        - name: OUTPUT_DIR
-          value: "/starlight/data/output"
         - name: BATCH_SIZE
           value: "5"
+        - name: INPUT_DIR_Starlight
+          value: "/processing_data/starlight/data/input"
+        - name: OUTPUT_DIR_Starlight
+          value: "/processing_data/starlight/data/output"
+        - name: INPUT_DIR_PPFX
+          value: "/processing_data/ppfx/data/input"
+        - name: OUTPUT_DIR_PPFX
+          value: "/processing_data/ppfx/data/output"
+        - name: INPUT_DIR_Steckmap
+          value: "/processing_data/steckmap/data/input"
+        - name: OUTPUT_DIR_Steckmap
+          value: "/processing_data/steckmap/data/output"
         - name: TEMPLATE_IN_FILE_PATH
           value: "/docker/starlight/config_files_starlight/grid_example.in"
         - name: "IN_FILE_OUTPUT_PATH"
-          value: "/starlight/runtime/infiles/"
+          value: "/processing_data/starlight/runtime/infiles/"
         ports:
         - containerPort: 5672
         volumeMounts:
-        - mountPath: /starlight/
+        - mountPath: /processing_data/
           name: ucm-pv-storage
-      - image: sparkworks/ac3-connector-http-http-consumer:latest
+      - image: quay.io/rh-ee-kromashk/ac3-connector-http-http-consumer:latest
         name: consumer
         env:
         - name: WEB_BASE_URL
