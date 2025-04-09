@@ -20,7 +20,7 @@ spec:
         persistentVolumeClaim:
           claimName: ucm-pv-claim-producer
       containers:
-      - image: quay.io/rh-ee-kromashk/ucm-producer
+      - image: <username>/ucm-producer
         name: ucm-producer
         securityContext:
            privileged: true
@@ -56,7 +56,7 @@ spec:
         volumeMounts:
         - mountPath: /processing_data/
           name: ucm-pv-storage
-      - image: quay.io/rh-ee-kromashk/ac3-connector-http-http-consumer:latest
+      - image: <username>/ac3-connector-http-http-consumer:latest
         name: consumer
         env:
         - name: WEB_BASE_URL
