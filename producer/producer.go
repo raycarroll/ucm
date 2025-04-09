@@ -213,6 +213,10 @@ func (p *Producer) removeInFileFromBatch() {
 }
 
 func mainRun() {
+	// Initialize directories first
+	if err := ensureDirectoriesExist(); err != nil {
+		log.Fatalf("Directory initialization failed: %v", err)
+	}
 	// Run all three applications concurrently
 	for {
 		ppfxApp()
@@ -283,6 +287,29 @@ func getDirectoriesWithFiles(inputDirEnv string, outputDirEnv string, appName st
 		log.Printf("No files found in %s directories\n", appName)
 	}
 }
+
+func ensureDirectoriesExist() error {
+	requiredDirs := []string{
+		os.Getenv("INPUT_DIR_Starlight"),
+		os.Getenv("OUTPUT_DIR_Starlight"),
+		os.Getenv("INPUT_DIR_PPFX"),
+		os.Getenv("OUTPUT_DIR_PPFX"),
+		os.Getenv("INPUT_DIR_Steckmap"),
+		os.Getenv("OUTPUT_DIR_Steckmap"),
+		os.Getenv("IN_FILE_OUTPUT_PATH"),
+	}
+
+	for _, dir := range requiredDirs {
+		if dir == "" {
+			continue // Skip empty paths (env vars not set)
+		}
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("failed to create directory %s: %v", dir, err)
+		}
+		log.Printf("Verified directory: %s", dir)
+	}
+	return nil
+}
 func starlightApp() {
 	getDirectoriesWithFiles("INPUT_DIR_Starlight", "OUTPUT_DIR_Starlight", "starlight")
 }
@@ -348,7 +375,6 @@ func send(conn *amqp.Connection, event Event, appName string) {
 	log.Printf(" [x] Sent batch with %d files\n", len(event.Files))
 	log.Printf("     Files: %s\n", strings.Join(filenames, ", "))
 }
-
 
 func receive(conn *amqp.Connection) {
 
