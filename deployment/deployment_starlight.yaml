@@ -20,14 +20,14 @@ spec:
         persistentVolumeClaim:
           claimName: ucm-pv-claim
       containers:
-      - image: quay.io/rh-ee-kromashk/ucm-starlight
+      - image:  <username>/ucm-starlight
         name: starlight
         workingDir: /docker/starlight/STARLIGHTv04
         command: ["./bash_script2.sh"]
         volumeMounts:
         - mountPath: /processing/
           name: ucm-pv-storage
-      - image: quay.io/rh-ee-kromashk/ucm-receiver
+      - image:  <username>/ucm-receiver
         name: eventreceiver
         volumeMounts:
         - mountPath: /processing/
@@ -57,7 +57,7 @@ spec:
           value: "/processing/ppfx/data/output"
         - name: OUTPUT_DIR_STECKMAP
           value: "/processing/steckmap/data/output"
-      - image: quay.io/rh-ee-kromashk/ucm-watcher
+      - image:  <username>/ucm-watcher
         name: ucm-watcher
         securityContext:
           privileged: true
