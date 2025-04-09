@@ -30,6 +30,10 @@ func failOnError(err error, msg string) {
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	log.Printf("------------------ Starting receive() ---------------------")
+	// Initialize directories first
+	if err := ensureDirectoriesExist(); err != nil {
+		log.Fatalf("Directory initialization failed: %v", err)
+	}
 
 	username := os.Getenv("RABBITMQ_USER")
 	password := os.Getenv("RABBITMQ_PASSWORD")
@@ -75,6 +79,53 @@ func main() {
 		}
 		time.Sleep(1 * time.Second) // Brief pause between queue checks
 	}
+}
+func ensureDirectoriesExist() error {
+	requiredDirs := []string{
+		os.Getenv("INPUT_DIR_STARLIGHT"),
+		os.Getenv("OUTPUT_DIR_STARLIGHT"),
+		os.Getenv("INPUT_DIR_PPFX"),
+		os.Getenv("OUTPUT_DIR_PPFX"),
+		os.Getenv("INPUT_DIR_STECKMAP"),
+		os.Getenv("OUTPUT_DIR_STECKMAP"),
+		os.Getenv("IN_FILE_PATH"),
+	}
+
+	// Create all required directories
+	for _, dir := range requiredDirs {
+		if dir == "" {
+			continue
+		}
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("failed to create directory %s: %v", dir, err)
+		}
+		log.Printf("Verified directory: %s", dir)
+	}
+
+	// Create process list file if specified
+	processListPath := os.Getenv("PROCESS_LIST")
+	log.Printf(processListPath)
+	if processListPath != "" {
+		// Ensure parent directory exists
+		parentDir := filepath.Dir(processListPath)
+		if err := os.MkdirAll(parentDir, 0755); err != nil {
+			return fmt.Errorf("failed to create parent directory for process list: %v", err)
+		}
+
+		// Create empty file if it doesn't exist
+		if _, err := os.Stat(processListPath); os.IsNotExist(err) {
+			file, err := os.Create(processListPath)
+			if err != nil {
+				return fmt.Errorf("failed to create process list file: %v", err)
+			}
+			file.Close()
+			log.Printf("Created process list file: %s", processListPath)
+		} else if err != nil {
+			return fmt.Errorf("failed to check process list file: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func processQueue(ch *amqp.Channel, queue string) {
@@ -181,11 +232,11 @@ func processMessage(ch *amqp.Channel, queue string, d amqp.Delivery) {
 	var outputPath string
 	switch queue {
 	case "starlight":
-		outputPath = os.Getenv("OUTPUT_DIR_STARLIGHT")
+		outputPath = os.Getenv("INPUT_DIR_STARLIGHT")
 	case "ppfx":
-		outputPath = os.Getenv("OUTPUT_DIR_PPFX")
+		outputPath = os.Getenv("INPUT_DIR_PPFX")
 	case "steckmap":
-		outputPath = os.Getenv("OUTPUT_DIR_STECKMAP")
+		outputPath = os.Getenv("INPUT_DIR_STECKMAP")
 	default:
 		log.Printf("│ ERROR: Unknown queue: %s", queue)
 		d.Nack(false, true)

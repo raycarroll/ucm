@@ -19,15 +19,6 @@ spec:
       - name: ucm-pv-storage
         persistentVolumeClaim:
           claimName: ucm-pv-claim
-      initContainers:
-      - name: init
-        image: busybox:1.28
-        command: ['sh', '-c', 'mkdir -p  /processing/ppfx /processing/ppfx/data /processing/ppfx/data/output /processing/steckmap/data /processing/steckmap/data/output /processing/starlight/data /processing/starlight/runtime /processing/starlight/runtime/infiles /processing/starlight/runtime/input /processing/starlight/data/input /processing/starlight/data/output && touch /processing/starlight/runtime/processlist.txt']
-        securityContext:
-          privileged: true
-        volumeMounts:
-        - mountPath: /processing/
-          name: ucm-pv-storage
       containers:
       - image: quay.io/rh-ee-kromashk/ucm-starlight
         name: starlight
@@ -54,6 +45,12 @@ spec:
           value: "/processing/starlight/runtime/infiles"
         - name: PROCESS_LIST
           value: "/processing/starlight/runtime/processlist.txt" 
+        - name: INPUT_DIR_STARLIGHT
+          value: "/processing/starlight/data/input"
+        - name: INPUT_DIR_PPFX
+          value: "/processing/ppfx/data/input"
+        - name: INPUT_DIR_STECKMAP
+          value: "/processing/steckmap/data/input"
         - name: OUTPUT_DIR_STARLIGHT
           value: "/processing/starlight/data/output"
         - name: OUTPUT_DIR_PPFX
@@ -78,6 +75,10 @@ spec:
           value: "5672"
         - name: OUTPUT_DIR_STARLIGHT
           value: "/processing/starlight/data/output"
+        - name: OUTPUT_DIR_PPFX
+          value: "/processing/ppfx/data/output"
+        - name: OUTPUT_DIR_STECKMAP
+          value: "/processing/steckmap/data/output"
         - name: BATCH_SIZE
           value: "5"
         ports:
